@@ -68,6 +68,10 @@ x-api-environment: &api-environment
   COOKIE_SECRET: ${COOKIE_SECRET:?}
   MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?}
   MFA_RECOVERY_PEPPER: ${MFA_RECOVERY_PEPPER:?}
+  # Demonstration default: administrators and sales agents sign in with an email
+  # and password only. Set AUTH_MFA_ENABLED=true to restore the authenticator
+  # challenge before this deployment carries real customer data.
+  AUTH_MFA_ENABLED: ${AUTH_MFA_ENABLED:-false}
   STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
   STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
   MINTSOFT_BASE_URL: ${MINTSOFT_BASE_URL:-}

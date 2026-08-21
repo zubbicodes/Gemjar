@@ -13,6 +13,16 @@ const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 const accessInclude = { roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } as const;
 export type SessionContext = { ip?: string; userAgent?: string };
 
+/**
+ * Second-factor enforcement is on unless AUTH_MFA_ENABLED is explicitly "false".
+ * Turning it off downgrades administrator and sales-agent sign-in to a single
+ * password, and exists only so demonstration environments can be walked through
+ * without an authenticator app. Leave it on wherever real customer data lives.
+ */
+export function mfaEnforced() {
+  return process.env.AUTH_MFA_ENABLED?.trim().toLowerCase() !== "false";
+}
+
 @Injectable()
 export class AuthService {
   constructor(private readonly jwt: JwtService, private readonly prisma: PrismaService, private readonly mfa: MfaService, private readonly audit: AuditService) {}
@@ -34,7 +44,7 @@ export class AuthService {
       throw new UnauthorizedException("Email or password is incorrect");
     }
     if (!user.emailVerifiedAt) throw new ForbiddenException("Verify your email address before signing in");
-    const requiresMfa = user.mfaRequired || user.kind === UserKind.ADMIN || user.kind === UserKind.AGENT;
+    const requiresMfa = mfaEnforced() && (user.mfaRequired || user.kind === UserKind.ADMIN || user.kind === UserKind.AGENT);
     if (requiresMfa) {
       const enrolled = await this.mfa.hasVerifiedFactor(user.id);
       const challengeToken = await this.mfa.issueChallenge(user.id, enrolled ? "mfa-verification" : "mfa-enrollment");
