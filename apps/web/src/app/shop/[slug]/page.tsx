@@ -4,13 +4,14 @@ import { ChevronRight, PackageCheck, ShieldCheck } from "lucide-react";
 import { AddToBag } from "@/components/add-to-bag";
 import { SiteHeader } from "@/components/site-header";
 import { products } from "@/lib/catalogue";
+import { getProduct } from "@/lib/api";
 import { formatMoney } from "@/lib/utils";
 
 export function generateStaticParams() { return products.map((product) => ({ slug: product.slug })); }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = products.find((item) => item.slug === slug);
+  const product = await getProduct(slug);
   if (!product) notFound();
   return (
     <main><SiteHeader />

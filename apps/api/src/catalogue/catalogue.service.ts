@@ -1,14 +1,59 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { ProductStatus } from "@prisma/client";
+import { PrismaService } from "../database/prisma.service";
 
-export type CatalogueItem = { id: string; name: string; slug: string; description: string; variant: { id: string; sku: string; retailPriceMinor: number; b2bPriceMinor: number; moq: number; packMultiple: number; available: number; capturedAt: string } };
+const productInclude = {
+  variants: { include: { stockSnapshots: { orderBy: { capturedAt: "desc" as const }, take: 1 } }, orderBy: { sku: "asc" as const } },
+  media: { orderBy: { position: "asc" as const } },
+  categories: { include: { category: true } },
+};
 
 @Injectable()
 export class CatalogueService {
-  private readonly products: CatalogueItem[] = [
-    { id: "prd_emerald_signet", name: "Verdant Signet", slug: "verdant-signet", description: "A sculptural signet in satin gold.", variant: { id: "var_emerald_signet", sku: "GJ-RNG-042", retailPriceMinor: 18900, b2bPriceMinor: 12850, moq: 1, packMultiple: 1, available: 18, capturedAt: new Date().toISOString() } },
-    { id: "prd_luna_hoops", name: "Luna Hoops", slug: "luna-hoops", description: "Quietly bold hoops with a brushed finish.", variant: { id: "var_luna_hoops", sku: "GJ-ER-118", retailPriceMinor: 9600, b2bPriceMinor: 6450, moq: 2, packMultiple: 2, available: 7, capturedAt: new Date(Date.now() - 18 * 60_000).toISOString() } },
-    { id: "prd_serein_chain", name: "Serein Chain", slug: "serein-chain", description: "An understated chain designed for layering.", variant: { id: "var_serein_chain", sku: "GJ-NK-207", retailPriceMinor: 14200, b2bPriceMinor: 9650, moq: 1, packMultiple: 1, available: 31, capturedAt: new Date().toISOString() } },
-  ];
-  list(query?: string) { const term = query?.trim().toLowerCase(); return term ? this.products.filter((item) => `${item.name} ${item.variant.sku}`.toLowerCase().includes(term)) : this.products; }
-  findVariant(id: string) { return this.products.find((item) => item.variant.id === id)?.variant; }
+  constructor(private readonly prisma: PrismaService) {}
+
+  async list(query?: string, includeInactive = false) {
+    const term = query?.trim();
+    const products = await this.prisma.product.findMany({
+      where: { status: includeInactive ? undefined : ProductStatus.ACTIVE, ...(term ? { OR: [{ name: { contains: term, mode: "insensitive" } }, { variants: { some: { sku: { contains: term, mode: "insensitive" } } } }] } : {}) },
+      include: productInclude,
+      orderBy: { createdAt: "desc" },
+    });
+    return products.map((product) => this.toCatalogueItem(product));
+  }
+
+  async findBySlug(slug: string) {
+    const product = await this.prisma.product.findUnique({ where: { slug }, include: productInclude });
+    if (!product || product.status !== ProductStatus.ACTIVE) throw new NotFoundException("Product was not found");
+    return this.toCatalogueItem(product);
+  }
+
+  async findVariant(id: string) {
+    const variant = await this.prisma.productVariant.findUnique({ where: { id }, include: { product: { select: { name: true } }, stockSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } } });
+    if (!variant || !variant.active) throw new NotFoundException(`Variant ${id} was not found`);
+    return { ...variant, productName: variant.product.name, available: variant.stockSnapshots[0]?.available ?? 0, capturedAt: (variant.stockSnapshots[0]?.capturedAt ?? new Date(0)).toISOString() };
+  }
+
+  async create(input: { name: string; slug: string; description: string; sku: string; retailPriceMinor: number; b2bPriceMinor?: number; moq: number; packMultiple: number; imageUrl?: string }) {
+    if (await this.prisma.product.findFirst({ where: { OR: [{ slug: input.slug }, { variants: { some: { sku: input.sku } } }] }, select: { id: true } })) throw new ConflictException("A product already uses this slug or SKU");
+    const product = await this.prisma.product.create({ data: { name: input.name, slug: input.slug, description: input.description, status: ProductStatus.ACTIVE, variants: { create: { sku: input.sku, retailPriceMinor: input.retailPriceMinor, b2bPriceMinor: input.b2bPriceMinor, moq: input.moq, packMultiple: input.packMultiple, stockSnapshots: { create: { available: 0, capturedAt: new Date(), provider: "MANUAL" } } } }, ...(input.imageUrl ? { media: { create: { url: input.imageUrl, alt: input.name, position: 0 } } } : {}) }, include: productInclude });
+    return this.toCatalogueItem(product);
+  }
+
+  async update(id: string, input: Partial<{ name: string; description: string; retailPriceMinor: number; b2bPriceMinor: number; status: ProductStatus; moq: number; packMultiple: number }>) {
+    const product = await this.prisma.product.findUnique({ where: { id }, include: { variants: { take: 1 } } });
+    if (!product) throw new NotFoundException("Product was not found");
+    const variant = product.variants[0];
+    await this.prisma.$transaction([
+      this.prisma.product.update({ where: { id }, data: { name: input.name, description: input.description, status: input.status } }),
+      ...(variant ? [this.prisma.productVariant.update({ where: { id: variant.id }, data: { retailPriceMinor: input.retailPriceMinor, b2bPriceMinor: input.b2bPriceMinor, moq: input.moq, packMultiple: input.packMultiple } })] : []),
+    ]);
+    const updated = await this.prisma.product.findUniqueOrThrow({ where: { id }, include: productInclude });
+    return this.toCatalogueItem(updated);
+  }
+
+  private toCatalogueItem(product: any) {
+    const variants = product.variants.map((variant: any) => ({ id: variant.id, sku: variant.sku, name: variant.name, retailPriceMinor: variant.retailPriceMinor, b2bPriceMinor: variant.b2bPriceMinor, vatRateBasis: variant.vatRateBasis, moq: variant.moq, packMultiple: variant.packMultiple, attributes: variant.attributes, available: variant.stockSnapshots[0]?.available ?? 0, capturedAt: (variant.stockSnapshots[0]?.capturedAt ?? new Date(0)).toISOString() }));
+    return { id: product.id, name: product.name, slug: product.slug, description: product.description, status: product.status, seoTitle: product.seoTitle, seoDescription: product.seoDescription, image: product.media[0]?.url ?? null, media: product.media, categories: product.categories.map(({ category }: any) => category), variants, variant: variants[0] ?? null, createdAt: product.createdAt, updatedAt: product.updatedAt };
+  }
 }

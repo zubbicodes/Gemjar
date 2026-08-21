@@ -335,6 +335,7 @@ model CartItem {
 model Order {
   id                String @id @default(cuid())
   number            String @unique
+  idempotencyKey    String @unique
   source            Channel
   status            OrderStatus @default(SUBMITTED)
   paymentStatus     PaymentStatus @default(UNPAID)

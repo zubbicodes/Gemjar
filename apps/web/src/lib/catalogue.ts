@@ -1,5 +1,6 @@
 export type Product = {
   id: string;
+  variantId: string;
   name: string;
   slug: string;
   sku: string;
@@ -16,6 +17,7 @@ export type Product = {
 export const products: Product[] = [
   {
     id: "prd_emerald_signet",
+    variantId: "var_emerald_signet",
     name: "Verdant Signet",
     slug: "verdant-signet",
     sku: "GJ-RNG-042",
@@ -29,6 +31,7 @@ export const products: Product[] = [
   },
   {
     id: "prd_luna_hoops",
+    variantId: "var_luna_hoops",
     name: "Luna Hoops",
     slug: "luna-hoops",
     sku: "GJ-ER-118",
@@ -42,6 +45,7 @@ export const products: Product[] = [
   },
   {
     id: "prd_serein_chain",
+    variantId: "var_serein_chain",
     name: "Serein Chain",
     slug: "serein-chain",
     sku: "GJ-NK-207",
@@ -56,6 +60,7 @@ export const products: Product[] = [
   },
   {
     id: "prd_solitaire_cuff",
+    variantId: "var_solitaire_cuff",
     name: "Solitaire Cuff",
     slug: "solitaire-cuff",
     sku: "GJ-BR-076",

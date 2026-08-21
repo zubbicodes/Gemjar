@@ -1,11 +1,12 @@
 import { SlidersHorizontal } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { SiteHeader } from "@/components/site-header";
-import { products } from "@/lib/catalogue";
+import { getProducts } from "@/lib/api";
 
 export const metadata = { title: "The Collection" };
 
-export default function ShopPage() {
+export default async function ShopPage() {
+  const products = await getProducts();
   return (
     <main><SiteHeader />
       <section className="mx-auto max-w-[1440px] px-5 pb-24 pt-14 lg:px-10 lg:pt-20">

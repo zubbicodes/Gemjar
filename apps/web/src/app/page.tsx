@@ -11,10 +11,11 @@ import {
 import { SiteHeader } from "@/components/site-header";
 import { ProductCard } from "@/components/product-card";
 import { buttonVariants } from "@/components/ui/button";
-import { products } from "@/lib/catalogue";
+import { getProducts } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const products = await getProducts();
   return (
     <main>
       <SiteHeader />
