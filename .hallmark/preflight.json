@@ -1,0 +1,8 @@
+{
+  "date": "2026-08-21",
+  "framework": "Next.js 15 App Router with React 19 and Tailwind CSS",
+  "fonts": ["Cormorant Garamond", "Manrope"],
+  "palette": "Warm ivory, charcoal, forest, moss, restrained gold",
+  "motion": "Framer Motion available; reduced-motion rules present",
+  "spacing": "Tailwind scale with an added 4pt semantic token scale"
+}

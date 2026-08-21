@@ -11,9 +11,23 @@ import { HealthController } from "./health.controller";
 import { IntegrationsModule } from "./integrations/integrations.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PricingModule } from "./pricing/pricing.module";
+import { PaymentsModule } from "./payments/payments.module";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]), DatabaseModule, AuditModule, AuthModule, AccountsModule, CatalogueModule, PricingModule, CartsModule, OrdersModule, IntegrationsModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
+    DatabaseModule,
+    AuditModule,
+    AuthModule,
+    AccountsModule,
+    CatalogueModule,
+    PricingModule,
+    CartsModule,
+    OrdersModule,
+    PaymentsModule,
+    IntegrationsModule,
+  ],
   controllers: [HealthController],
 })
 export class AppModule {}

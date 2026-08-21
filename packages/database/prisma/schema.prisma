@@ -121,6 +121,7 @@ model User {
   agent               SalesAgent?
   addresses          Address[]
   ordersCreated      Order[]  @relation("OrderCreator")
+  customerOrders     Order[]  @relation("OrderCustomer")
   carts              Cart[]
   auditLogs           AuditLog[]
 }
@@ -428,6 +429,7 @@ model Order {
   paymentStatus     PaymentStatus @default(UNPAID)
   fulfilmentStatus  FulfilmentStatus @default(UNFULFILLED)
   stockConfirmationPending Boolean @default(false)
+  confirmationTokenHash String? @unique
   userId            String?
   organizationId    String?
   agentId           String?
@@ -437,6 +439,8 @@ model Order {
   subtotalMinor      Int
   vatMinor           Int
   shippingMinor      Int @default(0)
+  deliveryMethodCode String?
+  deliveryMethodName String?
   totalMinor         Int
   billingAddress     Json
   deliveryAddress    Json
@@ -446,6 +450,7 @@ model Order {
   updatedAt          DateTime @updatedAt
   organization Organization? @relation(fields: [organizationId], references: [id])
   agent SalesAgent? @relation(fields: [agentId], references: [id])
+  customer User? @relation("OrderCustomer", fields: [userId], references: [id], onDelete: SetNull)
   createdBy User? @relation("OrderCreator", fields: [createdById], references: [id])
   items OrderItem[]
   events OrderStatusEvent[]
@@ -455,6 +460,7 @@ model Order {
   invoice InvoiceReference?
   externalRefs ExternalReference[]
   @@index([organizationId, createdAt])
+  @@index([userId, createdAt])
   @@index([status, createdAt])
 }
 
@@ -490,11 +496,31 @@ model Payment {
   orderId     String
   provider    String
   externalId  String? @unique
+  idempotencyKey String @unique @default(cuid())
   status      PaymentStatus
   amountMinor Int
+  failureCode String?
+  failureMessage String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   refunds Refund[]
+}
+
+model DeliveryMethod {
+  id                 String   @id @default(cuid())
+  code               String   @unique
+  name               String
+  description        String
+  priceMinor         Int
+  freeThresholdMinor Int?
+  estimatedDaysMin   Int
+  estimatedDaysMax   Int
+  active             Boolean  @default(true)
+  position           Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  @@index([active, position])
 }
 
 model Refund {
@@ -621,6 +647,7 @@ model OutboxEvent {
   processedAt DateTime?
   createdAt   DateTime @default(now())
   @@index([processedAt, createdAt])
+  @@unique([aggregate, aggregateId, type])
 }
 
 model ImportJob {

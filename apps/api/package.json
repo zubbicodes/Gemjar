@@ -25,7 +25,8 @@
     "cookie-parser": "^1.4.7",
     "helmet": "^8.1.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "stripe": "^22.5.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
@@ -33,9 +34,9 @@
     "@types/express": "^5.0.3",
     "@types/node": "^22.18.0",
     "eslint": "^9.34.0",
-    "typescript-eslint": "^8.42.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0",
     "vitest": "^3.2.4"
   }
 }
