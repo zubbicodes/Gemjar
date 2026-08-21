@@ -1,11 +1,5 @@
-import {
-  OrganizationRole,
-  OrganizationStatus,
-  PrismaClient,
-  ProductStatus,
-  UserKind,
-} from "@prisma/client";
-import * as argon2 from "argon2";
+import { PrismaClient, ProductStatus } from "@prisma/client";
+import { TRADE_ACCOUNT_NUMBER, seedDemoUsers } from "./demo-users";
 
 const prisma = new PrismaClient();
 
@@ -58,191 +52,6 @@ const catalogue = [
   },
 ] as const;
 
-async function seedPermissions() {
-  const pairs = [
-    "catalogue:read",
-    "catalogue:create",
-    "catalogue:update",
-    "pricing:read",
-    "pricing:update",
-    "customers:read",
-    "customers:create",
-    "customers:update",
-    "agents:read",
-    "agents:create",
-    "agents:update",
-    "orders:read",
-    "orders:update",
-    "fulfilment:read",
-    "fulfilment:update",
-    "finance:read",
-    "finance:refund",
-    "integrations:read",
-    "integrations:retry",
-    "audit:read",
-    "settings:update",
-  ];
-  const permissionIds: string[] = [];
-  for (const pair of pairs) {
-    const [resource, action] = pair.split(":") as [string, string];
-    const permission = await prisma.permission.upsert({
-      where: { resource_action: { resource, action } },
-      update: {},
-      create: { resource, action },
-    });
-    permissionIds.push(permission.id);
-  }
-  const role = await prisma.role.upsert({
-    where: { name: "Administrator" },
-    update: { description: "Full Gemjar platform administration" },
-    create: {
-      name: "Administrator",
-      description: "Full Gemjar platform administration",
-    },
-  });
-  for (const permissionId of permissionIds)
-    await prisma.rolePermission.upsert({
-      where: { roleId_permissionId: { roleId: role.id, permissionId } },
-      update: {},
-      create: { roleId: role.id, permissionId },
-    });
-  const user = await prisma.user.upsert({
-    where: { email: "admin@gemjar.test" },
-    update: {
-      firstName: "Amara",
-      lastName: "Morgan",
-      kind: UserKind.ADMIN,
-      emailVerifiedAt: new Date(),
-      mfaRequired: true,
-    },
-    create: {
-      email: "admin@gemjar.test",
-      passwordHash: await argon2.hash("GemjarDemo!2026", {
-        type: argon2.argon2id,
-      }),
-      firstName: "Amara",
-      lastName: "Morgan",
-      kind: UserKind.ADMIN,
-      emailVerifiedAt: new Date(),
-      mfaRequired: true,
-    },
-  });
-  await prisma.userRole.upsert({
-    where: { userId_roleId: { userId: user.id, roleId: role.id } },
-    update: {},
-    create: { userId: user.id, roleId: role.id },
-  });
-}
-
-async function seedAccounts() {
-  const passwordHash = await argon2.hash("GemjarDemo!2026", {
-    type: argon2.argon2id,
-  });
-  await prisma.user.upsert({
-    where: { email: "customer@gemjar.test" },
-    update: { kind: UserKind.CONSUMER, emailVerifiedAt: new Date() },
-    create: {
-      email: "customer@gemjar.test",
-      passwordHash,
-      firstName: "Maya",
-      lastName: "Hart",
-      kind: UserKind.CONSUMER,
-      emailVerifiedAt: new Date(),
-    },
-  });
-  const owner = await prisma.user.upsert({
-    where: { email: "buyer@gemjar.test" },
-    update: { kind: UserKind.B2B, emailVerifiedAt: new Date() },
-    create: {
-      email: "buyer@gemjar.test",
-      passwordHash,
-      firstName: "Priya",
-      lastName: "Shah",
-      kind: UserKind.B2B,
-      emailVerifiedAt: new Date(),
-    },
-  });
-  const organization = await prisma.organization.upsert({
-    where: { accountNumber: "GJ-TRADE-001" },
-    update: {
-      name: "North & Finch",
-      status: OrganizationStatus.APPROVED,
-      catalogueRestricted: true,
-    },
-    create: {
-      name: "North & Finch",
-      accountNumber: "GJ-TRADE-001",
-      status: OrganizationStatus.APPROVED,
-      paymentTermsDays: 30,
-      poRequired: true,
-      creditLimitMinor: 250000,
-      catalogueRestricted: true,
-    },
-  });
-  await prisma.organizationMembership.upsert({
-    where: {
-      userId_organizationId: {
-        userId: owner.id,
-        organizationId: organization.id,
-      },
-    },
-    update: { role: OrganizationRole.OWNER },
-    create: {
-      userId: owner.id,
-      organizationId: organization.id,
-      role: OrganizationRole.OWNER,
-    },
-  });
-
-  const agentUser = await prisma.user.upsert({
-    where: { email: "agent@gemjar.test" },
-    update: {
-      kind: UserKind.AGENT,
-      emailVerifiedAt: new Date(),
-      mfaRequired: true,
-    },
-    create: {
-      email: "agent@gemjar.test",
-      passwordHash,
-      firstName: "Theo",
-      lastName: "Bennett",
-      kind: UserKind.AGENT,
-      emailVerifiedAt: new Date(),
-      mfaRequired: true,
-    },
-  });
-  const agent = await prisma.salesAgent.upsert({
-    where: { userId: agentUser.id },
-    update: { active: true },
-    create: { userId: agentUser.id, code: "AG-001" },
-  });
-  await prisma.agentCustomerAssignment.upsert({
-    where: {
-      agentId_organizationId: {
-        agentId: agent.id,
-        organizationId: organization.id,
-      },
-    },
-    update: { active: true, unassignedAt: null },
-    create: { agentId: agent.id, organizationId: organization.id },
-  });
-  if (
-    !(await prisma.address.count({
-      where: { organizationId: organization.id },
-    }))
-  )
-    await prisma.address.create({
-      data: {
-        organizationId: organization.id,
-        label: "Head office",
-        recipient: "North & Finch",
-        line1: "18 Walcot Street",
-        city: "Bath",
-        postcode: "BA1 5BD",
-      },
-    });
-}
-
 async function seedDeliveryMethods() {
   await prisma.deliveryMethod.upsert({
     where: { code: "standard" },
@@ -293,7 +102,7 @@ async function seedDeliveryMethods() {
 
 async function seedTradePricing() {
   const organization = await prisma.organization.findUniqueOrThrow({
-    where: { accountNumber: "GJ-TRADE-001" },
+    where: { accountNumber: TRADE_ACCOUNT_NUMBER },
   });
   const products = await prisma.product.findMany({
     where: { slug: { in: ["verdant-signet", "luna-hoops", "serein-chain"] } },
@@ -441,10 +250,14 @@ async function seedCatalogue() {
 }
 
 async function main() {
-  await seedPermissions();
-  await seedAccounts();
+  await seedDemoUsers(prisma);
   await seedCatalogue();
   await seedTradePricing();
   await seedDeliveryMethods();
 }
-main().finally(() => prisma.$disconnect());
+main()
+  .catch((error) => {
+    console.error("Seed failed", error);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

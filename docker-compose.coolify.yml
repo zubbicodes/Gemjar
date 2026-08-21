@@ -1,6 +1,16 @@
 # Coolify deployment entrypoint for the complete Gemjar platform.
 # Point Coolify at /docker-compose.coolify.yml and attach the public domain only
-# to the `web` service on port 3000. Keep SEED_DATABASE=false in production.
+# to the `web` service on port 3000.
+#
+# Seeding, applied by the `migrate` service on every deployment:
+#   SEED_DEMO_USERS=true (default) creates or refreshes the demonstration
+#     accounts only — admin@gemjar.test, agent@gemjar.test, buyer@gemjar.test,
+#     customer@gemjar.test — all using DEMO_USER_PASSWORD. Catalogue, pricing,
+#     and order data are left untouched, so demonstration edits survive a
+#     redeploy. Their passwords are reset to DEMO_USER_PASSWORD each deployment.
+#   SEED_DATABASE=true additionally loads the demonstration catalogue, trade
+#     pricing, and delivery methods, resetting North & Finch pricing rows.
+#   Set both to false before the platform carries real customer data.
 
 x-gemjar-image: &gemjar-image
   image: gemjar-platform:${GEMJAR_IMAGE_TAG:-latest}
@@ -114,6 +124,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-gemjar}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-gemjar}
       SEED_DATABASE: ${SEED_DATABASE:-false}
+      SEED_DEMO_USERS: ${SEED_DEMO_USERS:-true}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-GemjarDemo!2026}
     command:
       - /bin/sh
       - -ec
@@ -121,6 +133,8 @@ services:
         pnpm --filter @gemjar/database exec prisma migrate deploy
         if [ "$${SEED_DATABASE}" = "true" ]; then
           pnpm --filter @gemjar/database exec prisma db seed
+        elif [ "$${SEED_DEMO_USERS}" = "true" ]; then
+          pnpm --filter @gemjar/database run seed:users
         fi
     depends_on:
       postgres:
