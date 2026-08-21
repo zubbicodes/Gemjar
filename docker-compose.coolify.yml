@@ -1,0 +1,226 @@
+# Coolify deployment entrypoint for the complete Gemjar platform.
+# Point Coolify at /docker-compose.coolify.yml and attach the public domain only
+# to the `web` service on port 3000. Keep SEED_DATABASE=false in production.
+
+x-gemjar-image: &gemjar-image
+  image: gemjar-platform:${GEMJAR_IMAGE_TAG:-latest}
+  pull_policy: build
+  build:
+    context: .
+    args:
+      NEXT_PUBLIC_API_URL: /api/v1
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+    dockerfile_inline: |
+      FROM node:22-bookworm-slim
+
+      ENV PNPM_HOME=/home/node/.local/share/pnpm
+      ENV PATH=$$PNPM_HOME:$$PATH
+      ENV NEXT_TELEMETRY_DISABLED=1
+      ENV API_INTERNAL_URL=http://api:4000/api/v1
+
+      ARG NEXT_PUBLIC_API_URL=/api/v1
+      ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+      ENV NEXT_PUBLIC_API_URL=$$NEXT_PUBLIC_API_URL
+      ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+
+      RUN apt-get update \
+          && apt-get install --yes --no-install-recommends ca-certificates openssl \
+          && rm -rf /var/lib/apt/lists/* \
+          && npm install --global pnpm@11.8.0
+
+      WORKDIR /app
+      RUN chown node:node /app
+      USER node
+
+      COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+      RUN mkdir -p apps/api apps/web apps/worker packages/contracts packages/database
+      COPY --chown=node:node apps/api/package.json ./apps/api/package.json
+      COPY --chown=node:node apps/web/package.json ./apps/web/package.json
+      COPY --chown=node:node apps/worker/package.json ./apps/worker/package.json
+      COPY --chown=node:node packages/contracts/package.json ./packages/contracts/package.json
+      COPY --chown=node:node packages/database/package.json ./packages/database/package.json
+      RUN pnpm install --frozen-lockfile
+
+      COPY --chown=node:node . .
+      RUN pnpm --filter @gemjar/database generate && pnpm exec turbo build --env-mode=loose
+
+      ENV NODE_ENV=production
+
+x-api-environment: &api-environment
+  NODE_ENV: production
+  PORT: 4000
+  TZ: ${TZ:-Europe/London}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-gemjar}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-gemjar}
+  REDIS_URL: redis://:${SERVICE_PASSWORD_REDIS}@redis:6379
+  WEB_URL: ${SERVICE_URL_WEB_3000}
+  JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?}
+  JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?}
+  COOKIE_SECRET: ${COOKIE_SECRET:?}
+  MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?}
+  MFA_RECOVERY_PEPPER: ${MFA_RECOVERY_PEPPER:?}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  MINTSOFT_BASE_URL: ${MINTSOFT_BASE_URL:-}
+  MINTSOFT_API_KEY: ${MINTSOFT_API_KEY:-}
+  SAGE_PROVIDER: ${SAGE_PROVIDER:-disabled}
+  AWS_REGION: ${AWS_REGION:-eu-west-2}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+  S3_BUCKET: ${S3_BUCKET:-}
+  SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gemjar}
+      POSTGRES_USER: ${POSTGRES_USER:-gemjar}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      POSTGRES_INITDB_ARGS: --data-checksums
+      TZ: ${TZ:-Europe/London}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+      TZ: ${TZ:-Europe/London}
+    command:
+      - /bin/sh
+      - -ec
+      - exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    <<: *gemjar-image
+    restart: "no"
+    exclude_from_hc: true
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gemjar}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-gemjar}
+      SEED_DATABASE: ${SEED_DATABASE:-false}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        pnpm --filter @gemjar/database exec prisma migrate deploy
+        if [ "$${SEED_DATABASE}" = "true" ]; then
+          pnpm --filter @gemjar/database exec prisma db seed
+        fi
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *gemjar-image
+    restart: unless-stopped
+    init: true
+    environment:
+      <<: *api-environment
+    command: ["node", "apps/api/dist/main.js"]
+    expose:
+      - "4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:4000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    stop_grace_period: 30s
+
+  worker:
+    <<: *gemjar-image
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      TZ: ${TZ:-Europe/London}
+      REDIS_URL: redis://:${SERVICE_PASSWORD_REDIS}@redis:6379
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+      SAGE_PROVIDER: ${SAGE_PROVIDER:-disabled}
+      MINTSOFT_BASE_URL: ${MINTSOFT_BASE_URL:-}
+      MINTSOFT_API_KEY: ${MINTSOFT_API_KEY:-}
+    command: ["node", "apps/worker/dist/main.js"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 30s
+
+  web:
+    <<: *gemjar-image
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      TZ: ${TZ:-Europe/London}
+      API_INTERNAL_URL: http://api:4000/api/v1
+      NEXT_PUBLIC_API_URL: /api/v1
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      SERVICE_URL_WEB_3000: ${SERVICE_URL_WEB_3000}
+    command:
+      - pnpm
+      - --filter
+      - "@gemjar/web"
+      - exec
+      - next
+      - start
+      - --hostname
+      - 0.0.0.0
+      - --port
+      - "3000"
+    expose:
+      - "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 30s
+
+volumes:
+  postgres_data:
+  redis_data:

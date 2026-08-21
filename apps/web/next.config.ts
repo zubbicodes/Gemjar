@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+const internalApiUrl = (
+  process.env.API_INTERNAL_URL || "http://localhost:4100/api/v1"
+).replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
@@ -10,6 +14,14 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${internalApiUrl}/:path*`,
+      },
+    ];
   },
   async headers() {
     return [
