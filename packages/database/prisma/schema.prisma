@@ -107,6 +107,8 @@ model User {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   sessions           Session[]
+  mfaFactors         MfaFactor[]
+  securityTokens     SecurityToken[]
   memberships        OrganizationMembership[]
   roles              UserRole[]
   agent               SalesAgent?
@@ -124,8 +126,44 @@ model Session {
   ipHash        String?
   userAgent     String?
   createdAt     DateTime @default(now())
+  lastUsedAt    DateTime @default(now())
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, expiresAt])
+}
+
+model MfaFactor {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String   @default("TOTP")
+  secretEncrypted String
+  verifiedAt      DateTime?
+  lastUsedAt      DateTime?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recoveryCodes   MfaRecoveryCode[]
+  @@index([userId, verifiedAt])
+}
+
+model MfaRecoveryCode {
+  id         String   @id @default(cuid())
+  factorId   String
+  codeHash   String   @unique
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+  factor     MfaFactor @relation(fields: [factorId], references: [id], onDelete: Cascade)
+  @@index([factorId, usedAt])
+}
+
+model SecurityToken {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, type, expiresAt])
 }
 
 model Role {

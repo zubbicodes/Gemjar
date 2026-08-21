@@ -1,4 +1,4 @@
-import { PrismaClient, ProductStatus, UserKind } from "@prisma/client";
+import { OrganizationRole, OrganizationStatus, PrismaClient, ProductStatus, UserKind } from "@prisma/client";
 import * as argon2 from "argon2";
 
 const prisma = new PrismaClient();
@@ -11,7 +11,7 @@ const catalogue = [
 ] as const;
 
 async function seedPermissions() {
-  const pairs = ["catalogue:read", "catalogue:create", "catalogue:update", "pricing:read", "pricing:update", "customers:read", "customers:update", "orders:read", "orders:update", "fulfilment:read", "fulfilment:update", "finance:read", "finance:refund", "integrations:read", "integrations:retry", "audit:read", "settings:update"];
+  const pairs = ["catalogue:read", "catalogue:create", "catalogue:update", "pricing:read", "pricing:update", "customers:read", "customers:create", "customers:update", "agents:read", "agents:create", "agents:update", "orders:read", "orders:update", "fulfilment:read", "fulfilment:update", "finance:read", "finance:refund", "integrations:read", "integrations:retry", "audit:read", "settings:update"];
   const permissionIds: string[] = [];
   for (const pair of pairs) {
     const [resource, action] = pair.split(":") as [string, string];
@@ -20,8 +20,19 @@ async function seedPermissions() {
   }
   const role = await prisma.role.upsert({ where: { name: "Administrator" }, update: { description: "Full Gemjar platform administration" }, create: { name: "Administrator", description: "Full Gemjar platform administration" } });
   for (const permissionId of permissionIds) await prisma.rolePermission.upsert({ where: { roleId_permissionId: { roleId: role.id, permissionId } }, update: {}, create: { roleId: role.id, permissionId } });
-  const user = await prisma.user.upsert({ where: { email: "admin@gemjar.test" }, update: { firstName: "Amara", lastName: "Morgan", kind: UserKind.ADMIN }, create: { email: "admin@gemjar.test", passwordHash: await argon2.hash("GemjarDemo!2026", { type: argon2.argon2id }), firstName: "Amara", lastName: "Morgan", kind: UserKind.ADMIN, emailVerifiedAt: new Date(), mfaRequired: false } });
+  const user = await prisma.user.upsert({ where: { email: "admin@gemjar.test" }, update: { firstName: "Amara", lastName: "Morgan", kind: UserKind.ADMIN, emailVerifiedAt: new Date(), mfaRequired: true }, create: { email: "admin@gemjar.test", passwordHash: await argon2.hash("GemjarDemo!2026", { type: argon2.argon2id }), firstName: "Amara", lastName: "Morgan", kind: UserKind.ADMIN, emailVerifiedAt: new Date(), mfaRequired: true } });
   await prisma.userRole.upsert({ where: { userId_roleId: { userId: user.id, roleId: role.id } }, update: {}, create: { userId: user.id, roleId: role.id } });
+}
+
+async function seedAccounts() {
+  const passwordHash = await argon2.hash("GemjarDemo!2026", { type: argon2.argon2id });
+  const owner = await prisma.user.upsert({ where: { email: "buyer@gemjar.test" }, update: { kind: UserKind.B2B, emailVerifiedAt: new Date() }, create: { email: "buyer@gemjar.test", passwordHash, firstName: "Priya", lastName: "Shah", kind: UserKind.B2B, emailVerifiedAt: new Date() } });
+  const organization = await prisma.organization.upsert({ where: { accountNumber: "GJ-TRADE-001" }, update: { name: "North & Finch", status: OrganizationStatus.APPROVED }, create: { name: "North & Finch", accountNumber: "GJ-TRADE-001", status: OrganizationStatus.APPROVED, paymentTermsDays: 30, poRequired: true, creditLimitMinor: 250000 } });
+  await prisma.organizationMembership.upsert({ where: { userId_organizationId: { userId: owner.id, organizationId: organization.id } }, update: { role: OrganizationRole.OWNER }, create: { userId: owner.id, organizationId: organization.id, role: OrganizationRole.OWNER } });
+
+  const agentUser = await prisma.user.upsert({ where: { email: "agent@gemjar.test" }, update: { kind: UserKind.AGENT, emailVerifiedAt: new Date(), mfaRequired: true }, create: { email: "agent@gemjar.test", passwordHash, firstName: "Theo", lastName: "Bennett", kind: UserKind.AGENT, emailVerifiedAt: new Date(), mfaRequired: true } });
+  const agent = await prisma.salesAgent.upsert({ where: { userId: agentUser.id }, update: { active: true }, create: { userId: agentUser.id, code: "AG-001" } });
+  await prisma.agentCustomerAssignment.upsert({ where: { agentId_organizationId: { agentId: agent.id, organizationId: organization.id } }, update: { active: true, unassignedAt: null }, create: { agentId: agent.id, organizationId: organization.id } });
 }
 
 async function seedCatalogue() {
@@ -43,5 +54,5 @@ async function seedCatalogue() {
   }
 }
 
-async function main() { await seedPermissions(); await seedCatalogue(); }
+async function main() { await seedPermissions(); await seedAccounts(); await seedCatalogue(); }
 main().finally(() => prisma.$disconnect());

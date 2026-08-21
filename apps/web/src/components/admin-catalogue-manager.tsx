@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/utils";
+import { csrfHeaders } from "@/lib/csrf";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4100/api/v1";
 type AdminProduct = { id: string; name: string; slug: string; description: string; status: "ACTIVE" | "INACTIVE"; variant: { sku: string; retailPriceMinor: number; b2bPriceMinor?: number; available: number } | null };
@@ -37,7 +38,7 @@ export function AdminCatalogueManager() {
     event.preventDefault(); setError(""); setMessage("");
     const form = new FormData(event.currentTarget);
     const payload = { name: form.get("name"), slug: form.get("slug"), description: form.get("description"), sku: form.get("sku"), retailPriceMinor: Math.round(Number(form.get("retailPrice")) * 100), b2bPriceMinor: Math.round(Number(form.get("b2bPrice")) * 100), moq: Number(form.get("moq")), packMultiple: Number(form.get("packMultiple")), imageUrl: form.get("imageUrl") || undefined };
-    const response = await fetch(`${API_URL}/admin/products`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const response = await fetch(`${API_URL}/admin/products`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...csrfHeaders() }, body: JSON.stringify(payload) });
     const body = await response.json();
     if (!response.ok) { setError(Array.isArray(body.message) ? body.message.join(". ") : body.message || "Unable to create product"); return; }
     setMessage(`${body.name} is now live in the Gemjar catalogue.`); setShowCreate(false); event.currentTarget.reset(); await load();

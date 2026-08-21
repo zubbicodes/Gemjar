@@ -16,9 +16,10 @@ export class JwtAuthGuard implements CanActivate {
     if (!token) throw new UnauthorizedException("Authentication is required");
     try {
       const payload = await this.jwt.verifyAsync<AccessPayload>(token);
-      const user = await this.prisma.user.findUnique({ where: { id: payload.sub }, select: { id: true, email: true, firstName: true, lastName: true, kind: true } });
-      if (!user) throw new UnauthorizedException("Session user no longer exists");
-      request.user = { ...user, permissions: payload.permissions };
+      if (!payload.sid) throw new UnauthorizedException("Session is invalid or expired");
+      const session = await this.prisma.session.findFirst({ where: { id: payload.sid, userId: payload.sub, revokedAt: null, expiresAt: { gt: new Date() } }, include: { user: { select: { id: true, email: true, firstName: true, lastName: true, kind: true } } } });
+      if (!session) throw new UnauthorizedException("Session is invalid or expired");
+      request.user = { ...session.user, permissions: payload.permissions, sessionId: session.id };
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;

@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { ProductStatus } from "@prisma/client";
 import { PrismaService } from "../database/prisma.service";
+import { AuditService } from "../audit/audit.service";
 
 const productInclude = {
   variants: { include: { stockSnapshots: { orderBy: { capturedAt: "desc" as const }, take: 1 } }, orderBy: { sku: "asc" as const } },
@@ -10,7 +11,7 @@ const productInclude = {
 
 @Injectable()
 export class CatalogueService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
 
   async list(query?: string, includeInactive = false) {
     const term = query?.trim();
@@ -34,13 +35,14 @@ export class CatalogueService {
     return { ...variant, productName: variant.product.name, available: variant.stockSnapshots[0]?.available ?? 0, capturedAt: (variant.stockSnapshots[0]?.capturedAt ?? new Date(0)).toISOString() };
   }
 
-  async create(input: { name: string; slug: string; description: string; sku: string; retailPriceMinor: number; b2bPriceMinor?: number; moq: number; packMultiple: number; imageUrl?: string }) {
+  async create(input: { name: string; slug: string; description: string; sku: string; retailPriceMinor: number; b2bPriceMinor?: number; moq: number; packMultiple: number; imageUrl?: string }, actorId?: string) {
     if (await this.prisma.product.findFirst({ where: { OR: [{ slug: input.slug }, { variants: { some: { sku: input.sku } } }] }, select: { id: true } })) throw new ConflictException("A product already uses this slug or SKU");
     const product = await this.prisma.product.create({ data: { name: input.name, slug: input.slug, description: input.description, status: ProductStatus.ACTIVE, variants: { create: { sku: input.sku, retailPriceMinor: input.retailPriceMinor, b2bPriceMinor: input.b2bPriceMinor, moq: input.moq, packMultiple: input.packMultiple, stockSnapshots: { create: { available: 0, capturedAt: new Date(), provider: "MANUAL" } } } }, ...(input.imageUrl ? { media: { create: { url: input.imageUrl, alt: input.name, position: 0 } } } : {}) }, include: productInclude });
+    await this.audit.record({ actorId, event: "CATALOGUE_PRODUCT_CREATED", entityType: "Product", entityId: product.id, after: { name: product.name, slug: product.slug, sku: input.sku } });
     return this.toCatalogueItem(product);
   }
 
-  async update(id: string, input: Partial<{ name: string; description: string; retailPriceMinor: number; b2bPriceMinor: number; status: ProductStatus; moq: number; packMultiple: number }>) {
+  async update(id: string, input: Partial<{ name: string; description: string; retailPriceMinor: number; b2bPriceMinor: number; status: ProductStatus; moq: number; packMultiple: number }>, actorId?: string) {
     const product = await this.prisma.product.findUnique({ where: { id }, include: { variants: { take: 1 } } });
     if (!product) throw new NotFoundException("Product was not found");
     const variant = product.variants[0];
@@ -49,6 +51,7 @@ export class CatalogueService {
       ...(variant ? [this.prisma.productVariant.update({ where: { id: variant.id }, data: { retailPriceMinor: input.retailPriceMinor, b2bPriceMinor: input.b2bPriceMinor, moq: input.moq, packMultiple: input.packMultiple } })] : []),
     ]);
     const updated = await this.prisma.product.findUniqueOrThrow({ where: { id }, include: productInclude });
+    await this.audit.record({ actorId, event: "CATALOGUE_PRODUCT_UPDATED", entityType: "Product", entityId: id, before: { name: product.name, status: product.status }, after: { name: updated.name, status: updated.status } });
     return this.toCatalogueItem(updated);
   }
 

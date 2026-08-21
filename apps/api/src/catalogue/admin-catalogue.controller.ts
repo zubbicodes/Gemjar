@@ -3,6 +3,8 @@ import { ApiTags } from "@nestjs/swagger";
 import { ProductStatus } from "@prisma/client";
 import { IsEnum, IsInt, IsOptional, IsString, IsUrl, Matches, MaxLength, Min, MinLength } from "class-validator";
 import { RequirePermissions } from "../auth/auth.decorators";
+import { CurrentUser } from "../auth/current-user.decorator";
+import type { AuthenticatedUser } from "../auth/auth.types";
 import { CatalogueService } from "./catalogue.service";
 
 class CreateProductDto {
@@ -32,6 +34,6 @@ class UpdateProductDto {
 export class AdminCatalogueController {
   constructor(private readonly catalogue: CatalogueService) {}
   @RequirePermissions("catalogue:read") @Get() async list() { const data = await this.catalogue.list(undefined, true); return { data, page: 1, pageSize: data.length, total: data.length }; }
-  @RequirePermissions("catalogue:create") @Post() create(@Body() body: CreateProductDto) { return this.catalogue.create(body); }
-  @RequirePermissions("catalogue:update") @Patch(":id") update(@Param("id") id: string, @Body() body: UpdateProductDto) { return this.catalogue.update(id, body); }
+  @RequirePermissions("catalogue:create") @Post() create(@CurrentUser() user: AuthenticatedUser, @Body() body: CreateProductDto) { return this.catalogue.create(body, user.id); }
+  @RequirePermissions("catalogue:update") @Patch(":id") update(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() body: UpdateProductDto) { return this.catalogue.update(id, body, user.id); }
 }
