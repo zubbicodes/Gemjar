@@ -1,0 +1,19 @@
+{
+  "name": "Gemjar Commerce",
+  "short_name": "Gemjar",
+  "description": "Gemjar storefront, trade ordering and account access.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f1e8",
+  "theme_color": "#12372f",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Shop", "url": "/shop" },
+    { "name": "Trade quick order", "url": "/trade/quick-order" },
+    { "name": "My orders", "url": "/account/orders" }
+  ]
+}

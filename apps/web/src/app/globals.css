@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: 245 241 232;
+  --ink: 23 33 30;
+  --forest: 18 55 47;
+  --moss: 87 114 102;
+  --gold: 189 166 109;
+  --mist: 233 228 217;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: rgb(var(--ink));
+  background: rgb(var(--paper));
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+::selection { color: white; background: rgb(var(--forest)); }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; }
+
+@layer components {
+  .eyebrow { @apply text-[10px] font-bold uppercase tracking-[0.23em] text-forest/60; }
+  .nav-link { @apply text-xs font-semibold tracking-[0.02em] text-ink/70 transition hover:text-forest; }
+  .icon-link { @apply grid size-10 place-items-center rounded-full transition hover:bg-forest/5 hover:text-forest; }
+  .icon-link svg { @apply size-[18px] stroke-[1.7]; }
+  .surface { @apply rounded-[28px] border border-ink/10 bg-white/55 shadow-soft backdrop-blur-sm; }
+  .field { @apply h-11 w-full rounded-xl border border-ink/15 bg-white/70 px-4 text-sm outline-none transition placeholder:text-ink/35 focus:border-forest/45 focus:ring-2 focus:ring-forest/10; }
+  .portal-label { @apply text-[10px] font-bold uppercase tracking-[0.18em] text-white/45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@gemjar/database",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "prisma generate",
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "seed": "tsx prisma/seed.ts",
+    "lint": "cross-env DATABASE_URL=postgresql://gemjar:gemjar@localhost:5432/gemjar prisma validate",
+    "typecheck": "cross-env DATABASE_URL=postgresql://gemjar:gemjar@localhost:5432/gemjar prisma validate",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": { "@prisma/client": "^6.15.0" },
+  "devDependencies": { "cross-env": "^10.0.0", "prisma": "^6.15.0", "tsx": "^4.20.5", "vitest": "^3.2.4" },
+  "prisma": { "seed": "tsx prisma/seed.ts" }
+}

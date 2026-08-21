@@ -1,0 +1,18 @@
+node_modules/
+.turbo/
+.next/
+dist/
+coverage/
+.env
+.env.local
+*.log
+*.tsbuildinfo
+packages/database/prisma/dev.db
+packages/database/src/generated/
+.DS_Store
+
+# Private product and client planning documents
+PRD.md
+PLAN.md
+client_doc.pdf
+Gemjar_Commerce_Platform_Solution_Scope.pdf

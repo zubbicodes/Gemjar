@@ -1,0 +1,22 @@
+{
+  "name": "gemjar-commerce-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.8.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @gemjar/database generate",
+    "db:migrate": "pnpm --filter @gemjar/database migrate",
+    "db:seed": "pnpm --filter @gemjar/database seed"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2"
+  }
+}
