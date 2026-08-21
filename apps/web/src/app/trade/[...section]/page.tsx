@@ -4,5 +4,5 @@ import { WorkspaceSection } from "@/components/workspace-section";
 
 export default async function TradeSection({ params }: { params: Promise<{ section: string[] }> }) {
   const { section } = await params; const current = section.join("-");
-  return <PortalShell kind="trade" title={current === "quick-order" ? "Build an order, quickly." : "Your trade account."} context="Aster & Row · Approved">{current === "quick-order" ? <QuickOrder /> : <WorkspaceSection section={current} />}</PortalShell>;
+  return <PortalShell kind="trade" title={current === "quick-order" ? "Build an order, quickly." : "Your trade account."} context="Secure trade workspace">{current === "quick-order" ? <QuickOrder kind="trade" /> : <WorkspaceSection section={current} />}</PortalShell>;
 }

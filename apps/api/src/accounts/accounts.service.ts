@@ -93,10 +93,29 @@ export class AccountsService {
     return this.getOrganization(actor, organizationId);
   }
 
-  private async assertCanAccess(actor: AuthenticatedUser, organizationId: string) {
-    if (actor.permissions.includes("customers:read")) return;
-    if (actor.kind === UserKind.B2B && await this.prisma.organizationMembership.findUnique({ where: { userId_organizationId: { userId: actor.id, organizationId } } })) return;
-    if (actor.kind === UserKind.AGENT && await this.prisma.agentCustomerAssignment.findFirst({ where: { organizationId, active: true, agent: { userId: actor.id, active: true } } })) return;
+  async assertCanAccess(actor: AuthenticatedUser, organizationId: string) {
+    const organization = await this.prisma.organization.findUnique({ where: { id: organizationId }, select: { id: true, status: true, catalogueRestricted: true, poRequired: true, paymentTermsDays: true, creditLimitMinor: true } });
+    if (!organization) throw new NotFoundException("Organization was not found");
+    if (actor.permissions.includes("customers:read")) return organization;
+    if (actor.kind === UserKind.B2B && await this.prisma.organizationMembership.findUnique({ where: { userId_organizationId: { userId: actor.id, organizationId } } })) return organization;
+    if (actor.kind === UserKind.AGENT && await this.prisma.agentCustomerAssignment.findFirst({ where: { organizationId, active: true, agent: { userId: actor.id, active: true } } })) return organization;
     throw new ForbiddenException("You do not have access to this customer organization");
+  }
+
+  async assertCanOrder(actor: AuthenticatedUser, organizationId: string) {
+    const organization = await this.assertCanAccess(actor, organizationId);
+    if (organization.status !== OrganizationStatus.APPROVED) throw new ForbiddenException("The organization is not approved for ordering");
+    if (actor.kind === UserKind.B2B) {
+      const membership = await this.prisma.organizationMembership.findUnique({ where: { userId_organizationId: { userId: actor.id, organizationId } } });
+      if (!membership || membership.role === OrganizationRole.VIEWER) throw new ForbiddenException("Viewer memberships cannot change baskets or submit orders");
+      return { organization, membership, agentId: undefined };
+    }
+    if (actor.kind === UserKind.AGENT) {
+      const assignment = await this.prisma.agentCustomerAssignment.findFirst({ where: { organizationId, active: true, agent: { userId: actor.id, active: true } }, include: { agent: true } });
+      if (!assignment) throw new ForbiddenException("The customer is not assigned to this sales agent");
+      return { organization, membership: undefined, agentId: assignment.agentId };
+    }
+    if (actor.permissions.includes("orders:update")) return { organization, membership: undefined, agentId: undefined };
+    throw new ForbiddenException("Ordering access is required");
   }
 }

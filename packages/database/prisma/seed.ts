@@ -27,12 +27,32 @@ async function seedPermissions() {
 async function seedAccounts() {
   const passwordHash = await argon2.hash("GemjarDemo!2026", { type: argon2.argon2id });
   const owner = await prisma.user.upsert({ where: { email: "buyer@gemjar.test" }, update: { kind: UserKind.B2B, emailVerifiedAt: new Date() }, create: { email: "buyer@gemjar.test", passwordHash, firstName: "Priya", lastName: "Shah", kind: UserKind.B2B, emailVerifiedAt: new Date() } });
-  const organization = await prisma.organization.upsert({ where: { accountNumber: "GJ-TRADE-001" }, update: { name: "North & Finch", status: OrganizationStatus.APPROVED }, create: { name: "North & Finch", accountNumber: "GJ-TRADE-001", status: OrganizationStatus.APPROVED, paymentTermsDays: 30, poRequired: true, creditLimitMinor: 250000 } });
+  const organization = await prisma.organization.upsert({ where: { accountNumber: "GJ-TRADE-001" }, update: { name: "North & Finch", status: OrganizationStatus.APPROVED, catalogueRestricted: true }, create: { name: "North & Finch", accountNumber: "GJ-TRADE-001", status: OrganizationStatus.APPROVED, paymentTermsDays: 30, poRequired: true, creditLimitMinor: 250000, catalogueRestricted: true } });
   await prisma.organizationMembership.upsert({ where: { userId_organizationId: { userId: owner.id, organizationId: organization.id } }, update: { role: OrganizationRole.OWNER }, create: { userId: owner.id, organizationId: organization.id, role: OrganizationRole.OWNER } });
 
   const agentUser = await prisma.user.upsert({ where: { email: "agent@gemjar.test" }, update: { kind: UserKind.AGENT, emailVerifiedAt: new Date(), mfaRequired: true }, create: { email: "agent@gemjar.test", passwordHash, firstName: "Theo", lastName: "Bennett", kind: UserKind.AGENT, emailVerifiedAt: new Date(), mfaRequired: true } });
   const agent = await prisma.salesAgent.upsert({ where: { userId: agentUser.id }, update: { active: true }, create: { userId: agentUser.id, code: "AG-001" } });
   await prisma.agentCustomerAssignment.upsert({ where: { agentId_organizationId: { agentId: agent.id, organizationId: organization.id } }, update: { active: true, unassignedAt: null }, create: { agentId: agent.id, organizationId: organization.id } });
+  if (!await prisma.address.count({ where: { organizationId: organization.id } })) await prisma.address.create({ data: { organizationId: organization.id, label: "Head office", recipient: "North & Finch", line1: "18 Walcot Street", city: "Bath", postcode: "BA1 5BD" } });
+}
+
+async function seedTradePricing() {
+  const organization = await prisma.organization.findUniqueOrThrow({ where: { accountNumber: "GJ-TRADE-001" } });
+  const products = await prisma.product.findMany({ where: { slug: { in: ["verdant-signet", "luna-hoops", "serein-chain"] } }, include: { variants: true } });
+  await prisma.organizationProductAccess.deleteMany({ where: { organizationId: organization.id } });
+  await prisma.organizationProductAccess.createMany({ data: products.map((product) => ({ organizationId: organization.id, productId: product.id })) });
+  const verdant = products.find((product) => product.slug === "verdant-signet")?.variants[0];
+  const luna = products.find((product) => product.slug === "luna-hoops")?.variants[0];
+  await prisma.customerPrice.deleteMany({ where: { organizationId: organization.id } });
+  await prisma.pricingHistory.deleteMany({ where: { organizationId: organization.id } });
+  const prices = [
+    ...(verdant ? [{ variantId: verdant.id, minQuantity: 1, unitPriceMinor: 11500, rule: "CUSTOMER_FIXED" }] : []),
+    ...(luna ? [{ variantId: luna.id, minQuantity: 1, unitPriceMinor: 6400, rule: "CUSTOMER_FIXED" }, { variantId: luna.id, minQuantity: 4, unitPriceMinor: 5900, rule: "CUSTOMER_QUANTITY_TIER" }] : []),
+  ];
+  for (const price of prices) {
+    const current = await prisma.customerPrice.create({ data: { organizationId: organization.id, variantId: price.variantId, minQuantity: price.minQuantity, unitPriceMinor: price.unitPriceMinor } });
+    await prisma.pricingHistory.create({ data: { organizationId: organization.id, variantId: price.variantId, rule: price.rule, unitPriceMinor: price.unitPriceMinor, minQuantity: price.minQuantity, effectiveFrom: current.effectiveFrom } });
+  }
 }
 
 async function seedCatalogue() {
@@ -54,5 +74,5 @@ async function seedCatalogue() {
   }
 }
 
-async function main() { await seedPermissions(); await seedAccounts(); await seedCatalogue(); }
+async function main() { await seedPermissions(); await seedAccounts(); await seedCatalogue(); await seedTradePricing(); }
 main().finally(() => prisma.$disconnect());

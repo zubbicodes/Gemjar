@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { AccountsService } from "./accounts.service";
 
-const organization = { id: "org-1", name: "North & Finch", memberships: [], addresses: [] };
+const organization = { id: "org-1", name: "North & Finch", status: "APPROVED", catalogueRestricted: false, memberships: [], addresses: [] };
 const actor = (kind: AuthenticatedUser["kind"], id = "user-1", permissions: string[] = []): AuthenticatedUser => ({ id, email: `${id}@test.local`, firstName: "Test", lastName: "User", kind, permissions, sessionId: "session-1" });
 
-function service(overrides: { membership?: boolean; assignment?: boolean } = {}) {
+function service(overrides: { membership?: boolean | "VIEWER"; assignment?: boolean } = {}) {
   const prisma = {
-    organizationMembership: { findUnique: vi.fn().mockResolvedValue(overrides.membership ? { role: "VIEWER" } : null) },
+    organizationMembership: { findUnique: vi.fn().mockResolvedValue(overrides.membership ? { role: overrides.membership === "VIEWER" ? "VIEWER" : "BUYER" } : null) },
     agentCustomerAssignment: { findFirst: vi.fn().mockResolvedValue(overrides.assignment ? { id: "assignment-1" } : null) },
     organization: { findUnique: vi.fn().mockResolvedValue(organization) },
   };
@@ -37,5 +37,12 @@ describe("organization resource authorization", () => {
     const { accounts, prisma } = service();
     await expect(accounts.getOrganization(actor("ADMIN", "admin-1", ["customers:read"]), "org-1")).resolves.toEqual(organization);
     expect(prisma.organizationMembership.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("allows buyers but prevents viewers from changing commerce state", async () => {
+    const buyer = service({ membership: true });
+    await expect(buyer.accounts.assertCanOrder(actor("B2B"), "org-1")).resolves.toMatchObject({ membership: { role: "BUYER" } });
+    const viewer = service({ membership: "VIEWER" });
+    await expect(viewer.accounts.assertCanOrder(actor("B2B"), "org-1")).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

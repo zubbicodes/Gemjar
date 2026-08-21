@@ -16,21 +16,33 @@ export class CatalogueService {
   async list(query?: string, includeInactive = false) {
     const term = query?.trim();
     const products = await this.prisma.product.findMany({
-      where: { status: includeInactive ? undefined : ProductStatus.ACTIVE, ...(term ? { OR: [{ name: { contains: term, mode: "insensitive" } }, { variants: { some: { sku: { contains: term, mode: "insensitive" } } } }] } : {}) },
+      where: { status: includeInactive ? undefined : ProductStatus.ACTIVE, b2cVisible: includeInactive ? undefined : true, ...(term ? { OR: [{ name: { contains: term, mode: "insensitive" } }, { variants: { some: { sku: { contains: term, mode: "insensitive" } } } }] } : {}) },
       include: productInclude,
       orderBy: { createdAt: "desc" },
     });
     return products.map((product) => this.toCatalogueItem(product));
   }
 
+  async listForOrganization(organizationId: string, query?: string) {
+    const organization = await this.prisma.organization.findUnique({ where: { id: organizationId }, select: { catalogueRestricted: true } });
+    if (!organization) throw new NotFoundException("Organization was not found");
+    const term = query?.trim();
+    const products = await this.prisma.product.findMany({
+      where: { status: ProductStatus.ACTIVE, b2bVisible: true, ...(organization.catalogueRestricted ? { organizationAccess: { some: { organizationId } } } : {}), ...(term ? { OR: [{ name: { contains: term, mode: "insensitive" } }, { variants: { some: { sku: { contains: term, mode: "insensitive" } } } }] } : {}) },
+      include: productInclude,
+      orderBy: { name: "asc" },
+    });
+    return products.map((product) => this.toCatalogueItem(product));
+  }
+
   async findBySlug(slug: string) {
     const product = await this.prisma.product.findUnique({ where: { slug }, include: productInclude });
-    if (!product || product.status !== ProductStatus.ACTIVE) throw new NotFoundException("Product was not found");
+    if (!product || product.status !== ProductStatus.ACTIVE || !product.b2cVisible) throw new NotFoundException("Product was not found");
     return this.toCatalogueItem(product);
   }
 
   async findVariant(id: string) {
-    const variant = await this.prisma.productVariant.findUnique({ where: { id }, include: { product: { select: { name: true } }, stockSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } } });
+    const variant = await this.prisma.productVariant.findUnique({ where: { id }, include: { product: { select: { id: true, name: true, b2cVisible: true, b2bVisible: true } }, stockSnapshots: { orderBy: { capturedAt: "desc" }, take: 1 } } });
     if (!variant || !variant.active) throw new NotFoundException(`Variant ${id} was not found`);
     return { ...variant, productName: variant.product.name, available: variant.stockSnapshots[0]?.available ?? 0, capturedAt: (variant.stockSnapshots[0]?.capturedAt ?? new Date(0)).toISOString() };
   }

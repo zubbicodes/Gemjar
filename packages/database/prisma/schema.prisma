@@ -95,6 +95,13 @@ enum JobStatus {
   DEAD_LETTER
 }
 
+enum CartStatus {
+  ACTIVE
+  DRAFT
+  CONVERTED
+  ABANDONED
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String   @unique
@@ -114,6 +121,7 @@ model User {
   agent               SalesAgent?
   addresses          Address[]
   ordersCreated      Order[]  @relation("OrderCreator")
+  carts              Cart[]
   auditLogs           AuditLog[]
 }
 
@@ -207,6 +215,7 @@ model Organization {
   poRequired        Boolean @default(false)
   creditLimitMinor  Int?
   vatDisplay        String @default("EXCLUSIVE")
+  catalogueRestricted Boolean @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   memberships       OrganizationMembership[]
@@ -214,6 +223,8 @@ model Organization {
   customerPrices    CustomerPrice[]
   agentAssignments  AgentCustomerAssignment[]
   orders            Order[]
+  carts             Cart[]
+  catalogueAccess   OrganizationProductAccess[]
 }
 
 model OrganizationMembership {
@@ -249,6 +260,7 @@ model SalesAgent {
   user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignments AgentCustomerAssignment[]
   orders      Order[]
+  carts       Cart[]
 }
 
 model AgentCustomerAssignment {
@@ -279,6 +291,8 @@ model Product {
   slug        String @unique
   description String
   status      ProductStatus @default(ACTIVE)
+  b2cVisible  Boolean @default(true)
+  b2bVisible  Boolean @default(true)
   seoTitle    String?
   seoDescription String?
   createdAt   DateTime @default(now())
@@ -286,6 +300,17 @@ model Product {
   variants    ProductVariant[]
   categories  ProductCategory[]
   media       ProductMedia[]
+  organizationAccess OrganizationProductAccess[]
+}
+
+model OrganizationProductAccess {
+  organizationId String
+  productId      String
+  createdAt      DateTime @default(now())
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product       Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@id([organizationId, productId])
+  @@index([productId])
 }
 
 model ProductCategory {
@@ -339,6 +364,20 @@ model CustomerPrice {
   @@index([organizationId, variantId, minQuantity])
 }
 
+model PricingHistory {
+  id             String   @id @default(cuid())
+  organizationId String?
+  variantId      String
+  rule           String
+  unitPriceMinor Int
+  minQuantity    Int      @default(1)
+  effectiveFrom  DateTime
+  effectiveTo    DateTime?
+  changedById    String?
+  createdAt      DateTime @default(now())
+  @@index([organizationId, variantId, createdAt])
+}
+
 model StockSnapshot {
   id          String @id @default(cuid())
   variantId   String
@@ -356,8 +395,18 @@ model Cart {
   organizationId String?
   agentId        String?
   channel        Channel
+  status         CartStatus @default(ACTIVE)
+  name           String?
+  version        Int @default(1)
+  createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  user           User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent          SalesAgent? @relation(fields: [agentId], references: [id], onDelete: Cascade)
   items          CartItem[]
+  @@index([userId, channel, status, updatedAt])
+  @@index([organizationId, channel, status, updatedAt])
+  @@index([agentId, channel, status, updatedAt])
 }
 
 model CartItem {
