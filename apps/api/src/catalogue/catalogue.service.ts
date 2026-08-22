@@ -29,6 +29,7 @@ export class CatalogueService {
     const term = query?.trim();
     const products = await this.prisma.product.findMany({
       where: {
+        deletedAt: null,
         status: includeInactive ? undefined : ProductStatus.ACTIVE,
         b2cVisible: includeInactive ? undefined : true,
         ...(term
@@ -60,6 +61,7 @@ export class CatalogueService {
     const term = query?.trim();
     const products = await this.prisma.product.findMany({
       where: {
+        deletedAt: null,
         status: ProductStatus.ACTIVE,
         b2bVisible: true,
         ...(organization.catalogueRestricted
@@ -119,6 +121,7 @@ export class CatalogueService {
     });
     if (
       !product ||
+      product.deletedAt ||
       product.status !== ProductStatus.ACTIVE ||
       !product.b2cVisible
     )
@@ -343,6 +346,52 @@ export class CatalogueService {
       after: { name: updated.name, status: updated.status },
     });
     return this.toCatalogueItem(updated);
+  }
+
+  async getById(id: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: productInclude,
+    });
+    if (!product || product.deletedAt)
+      throw new NotFoundException("Product was not found");
+    return this.toCatalogueItem(product);
+  }
+
+  async removeProduct(id: string, actorId?: string) {
+    const product = await this.prisma.product.findUnique({ where: { id } });
+    if (!product || product.deletedAt)
+      throw new NotFoundException("Product was not found");
+    await this.prisma.product.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+    await this.audit.record({
+      actorId,
+      event: "CATALOGUE_PRODUCT_DELETED",
+      entityType: "Product",
+      entityId: id,
+      before: { name: product.name, slug: product.slug },
+    });
+    return { success: true };
+  }
+
+  async restoreProduct(id: string, actorId?: string) {
+    const product = await this.prisma.product.findUnique({ where: { id } });
+    if (!product || !product.deletedAt)
+      throw new NotFoundException("Deleted product was not found");
+    await this.prisma.product.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+    await this.audit.record({
+      actorId,
+      event: "CATALOGUE_PRODUCT_RESTORED",
+      entityType: "Product",
+      entityId: id,
+      after: { name: product.name, slug: product.slug },
+    });
+    return { success: true };
   }
 
   async listCategories() {

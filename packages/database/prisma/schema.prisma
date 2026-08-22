@@ -309,11 +309,14 @@ model Product {
   seoDescription     String?
   createdAt          DateTime                    @default(now())
   updatedAt          DateTime                    @updatedAt
+  deletedAt          DateTime?
   variants           ProductVariant[]
   categories         ProductCategory[]
   media              ProductMedia[]
   organizationAccess OrganizationProductAccess[]
   favourites         Favourite[]
+
+  @@index([deletedAt])
 }
 
 model Favourite {

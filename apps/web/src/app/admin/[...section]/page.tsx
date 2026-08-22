@@ -1,4 +1,5 @@
 import { AdminCatalogueManager } from "@/components/admin-catalogue-manager";
+import { AdminProductDetail } from "@/components/admin-product-detail";
 import { AdminCustomers } from "@/components/admin-customers";
 import { AdminOrderManager } from "@/components/admin-order-manager";
 import { FulfilmentConsole } from "@/components/fulfilment-console";
@@ -69,7 +70,19 @@ export default async function AdminSection({
 }: {
   params: Promise<{ section: string[] }>;
 }) {
-  const current = (await params).section.join("-");
+  const parts = (await params).section;
+  if (parts[0] === "catalogue" && parts.length === 2 && parts[1]) {
+    const productId = parts[1];
+    return (
+      <PortalShell
+        kind="admin"
+        title={productId === "new" ? "New product." : "Product."}
+      >
+        <AdminProductDetail productId={productId} />
+      </PortalShell>
+    );
+  }
+  const current = parts.join("-");
   return (
     <PortalShell kind="admin" title={TITLES[current] ?? "Gemjar operations."}>
       {section(current)}

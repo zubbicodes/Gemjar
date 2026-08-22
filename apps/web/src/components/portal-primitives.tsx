@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, LoaderCircle } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 
 export function PanelHeading({
@@ -107,6 +108,81 @@ export function formatDateTime(value: string | Date | null | undefined) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+type UndoToastState = { label: string; secondsLeft: number; undo: () => void };
+
+/**
+ * Drives a bottom "Undo" toast for actions that already committed server-side
+ * (e.g. a soft delete). The window is purely a UI grace period; the action
+ * itself has already happened, so "undo" calls a real reversal endpoint.
+ */
+export function useUndoToast() {
+  const [toast, setToast] = useState<UndoToastState | null>(null);
+  const timers = useRef<{
+    timeout?: ReturnType<typeof setTimeout>;
+    interval?: ReturnType<typeof setInterval>;
+  }>({});
+
+  const clearTimers = useCallback(() => {
+    if (timers.current.timeout) clearTimeout(timers.current.timeout);
+    if (timers.current.interval) clearInterval(timers.current.interval);
+  }, []);
+
+  const show = useCallback(
+    (label: string, undo: () => void, seconds = 10) => {
+      clearTimers();
+      setToast({ label, secondsLeft: seconds, undo });
+      timers.current.interval = setInterval(() => {
+        setToast((current) =>
+          current ? { ...current, secondsLeft: current.secondsLeft - 1 } : current,
+        );
+      }, 1000);
+      timers.current.timeout = setTimeout(() => {
+        clearTimers();
+        setToast(null);
+      }, seconds * 1000);
+    },
+    [clearTimers],
+  );
+
+  const dismiss = useCallback(() => {
+    clearTimers();
+    setToast(null);
+  }, [clearTimers]);
+
+  return { toast, show, dismiss };
+}
+
+export function UndoToast({
+  toast,
+  onDismiss,
+}: {
+  toast: UndoToastState | null;
+  onDismiss: () => void;
+}) {
+  if (!toast) return null;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+    >
+      <div className="flex items-center gap-4 rounded-full bg-ink px-5 py-3 text-xs font-semibold text-paper shadow-xl">
+        <span>{toast.label}</span>
+        <button
+          type="button"
+          onClick={() => {
+            toast.undo();
+            onDismiss();
+          }}
+          className="whitespace-nowrap rounded-full bg-paper/15 px-3 py-1.5 font-bold transition-colors hover:bg-paper/25"
+        >
+          Undo · {toast.secondsLeft}s
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function relativeTime(value: string | Date | null | undefined) {

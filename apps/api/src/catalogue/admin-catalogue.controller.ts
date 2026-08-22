@@ -89,6 +89,11 @@ export class AdminCatalogueController {
     const data = await this.catalogue.list(undefined, true);
     return { data, page: 1, pageSize: data.length, total: data.length };
   }
+  @RequirePermissions("catalogue:read") @Get(":id") one(
+    @Param("id") id: string,
+  ) {
+    return this.catalogue.getById(id);
+  }
   @RequirePermissions("catalogue:create") @Post() create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: CreateProductDto,
@@ -101,6 +106,18 @@ export class AdminCatalogueController {
     @Body() body: UpdateProductDto,
   ) {
     return this.catalogue.update(id, body, user.id);
+  }
+  @RequirePermissions("catalogue:update") @Delete(":id") remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+  ) {
+    return this.catalogue.removeProduct(id, user.id);
+  }
+  @RequirePermissions("catalogue:update") @Post(":id/restore") restore(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+  ) {
+    return this.catalogue.restoreProduct(id, user.id);
   }
   @RequirePermissions("catalogue:create") @Post(":id/variants") createVariant(
     @CurrentUser() user: AuthenticatedUser,
