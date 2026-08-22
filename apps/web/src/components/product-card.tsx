@@ -14,11 +14,8 @@ export function ProductCard({
   index?: number;
 }) {
   return (
-    <article
-      className="group animate-fade-up"
-      style={{ animationDelay: `${index * 90}ms` }}
-    >
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] bg-mist">
+    <article className="group" data-position={index}>
+      <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-ink/10 bg-mist">
         <Image
           src={product.image}
           alt={product.name}
@@ -30,7 +27,7 @@ export function ProductCard({
         <div className="absolute right-4 top-4">
           <FavouriteButton productId={product.id} productName={product.name} />
         </div>
-        <div className="absolute inset-x-4 bottom-4 flex translate-y-2 items-center justify-between opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="absolute inset-x-4 bottom-4 flex items-center justify-between opacity-100 transition sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100">
           <span className="rounded-full bg-white/85 px-4 py-2 text-xs font-semibold text-ink backdrop-blur">
             {product.availability}
           </span>

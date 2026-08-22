@@ -17,7 +17,7 @@ export function PublicInformationPage({
         <h1 className="mt-4 font-display text-6xl font-semibold tracking-[-.04em]">
           {title}
         </h1>
-        <div className="mt-10 space-y-6 text-sm leading-8 text-ink/75">
+        <div className="mt-10 space-y-6 text-sm leading-8 text-ink/90">
           {children}
         </div>
       </article>

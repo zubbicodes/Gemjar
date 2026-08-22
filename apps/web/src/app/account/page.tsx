@@ -5,7 +5,7 @@ export const metadata = { title: "My account" };
 
 export default function AccountPage() {
   return (
-    <PortalShell kind="account" title="Your Gemjar collection.">
+    <PortalShell kind="account" title="Account overview">
       <AccountDashboard />
     </PortalShell>
   );

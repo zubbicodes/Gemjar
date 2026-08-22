@@ -1,6 +1,14 @@
 [
   {
     "date": "2026-08-22",
+    "macrostructure": "Catalogue + Workbench",
+    "theme": "studied-DNA",
+    "enrichment": "client-owned Shopify product photography",
+    "brief": "Gemjar whole-site and portal redesign",
+    "scope": "app"
+  },
+  {
+    "date": "2026-08-22",
     "macrostructure": "Catalogue",
     "theme": "Hum",
     "enrichment": "client-owned product photography",

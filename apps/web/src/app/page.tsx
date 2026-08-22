@@ -22,17 +22,17 @@ export default async function HomePage() {
   return (
     <main>
       <SiteHeader />
-      <section className="grid min-h-[650px] min-w-0 bg-gold lg:grid-cols-[.9fr_1.1fr]">
+      <section className="grid min-h-[650px] min-w-0 bg-white lg:grid-cols-[.9fr_1.1fr]">
         <div className="flex min-w-0 flex-col justify-center px-5 py-16 sm:px-10 lg:px-[max(2.5rem,calc((100vw-1440px)/2+2.5rem))] lg:py-24">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink">{content.eyebrow}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-forest">{content.eyebrow}</p>
           <h1 className="display-safe mt-5 max-w-3xl font-display text-[clamp(3.5rem,7vw,5.5rem)] font-extrabold leading-[.9] tracking-[-0.06em]">
-            {content.headline} <span className="text-forest">{content.emphasis}</span>
+            <span className="text-forest">{content.headline}</span> {content.emphasis}
           </h1>
           <p className="mt-7 max-w-lg text-base font-medium leading-7 text-ink/75">
             {content.introduction}
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
-            <Link href="/shop" className={cn(buttonVariants({ size: "lg" }), "bg-ink text-paper hover:bg-forest")}>
+            <Link href="/shop" className={cn(buttonVariants({ size: "lg" }))}>
               Shop colourful comfort <ArrowRight className="size-4" />
             </Link>
             <Link href="/trade" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "border-ink/20 bg-paper/55")}>
@@ -46,7 +46,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="border-b border-ink/10 bg-paper">
+      <section className="border-y border-ink/10 bg-mist/55">
         <div className="mx-auto grid max-w-[1440px] grid-cols-2 divide-x divide-ink/10 px-5 py-6 lg:grid-cols-4 lg:px-10">
           {(
             [
@@ -89,7 +89,7 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="grid gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
-          {products.slice(0, 4).map((product, index) => (
+          {products.slice(0, 8).map((product, index) => (
             <ProductCard key={product.id} product={product} index={index} />
           ))}
         </div>
@@ -102,7 +102,7 @@ export default async function HomePage() {
             <h2 className="display-safe mt-5 max-w-xl font-display text-4xl font-extrabold leading-[.98] tracking-[-0.04em] sm:text-6xl">
               {content.tradeHeadline}
             </h2>
-            <p className="mt-7 max-w-lg text-sm leading-7 text-paper/75">
+            <p className="mt-7 max-w-lg text-sm leading-7 text-paper">
               {content.tradeIntroduction}
             </p>
             <Link

@@ -3,12 +3,14 @@
 import {
   AlertCircle,
   CheckCircle2,
+  PackageSearch,
   Pencil,
   Plus,
   RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -867,59 +869,33 @@ export function AdminCatalogueManager() {
           </Button>
         </form>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-xs">
-          <thead className="bg-ink/[.025] text-[10px] uppercase tracking-wider text-ink/38">
-            <tr>
-              <th className="px-6 py-3">Product</th>
-              <th className="px-4 py-3">SKU</th>
-              <th className="px-4 py-3">Retail</th>
-              <th className="px-4 py-3">Trade</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-6 py-3 text-right">Status</th>
-              <th className="px-6 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id} className="border-t border-ink/[.06]">
-                <td className="px-6 py-4">
-                  <p className="font-bold">{product.name}</p>
-                  <p className="mt-1 text-[10px] text-ink/35">
-                    /{product.slug}
-                  </p>
-                </td>
-                <td className="px-4 py-4">{product.variant?.sku}</td>
-                <td className="px-4 py-4 font-semibold">
-                  {formatMoney(product.variant?.retailPriceMinor ?? 0)}
-                </td>
-                <td className="px-4 py-4">
-                  {formatMoney(product.variant?.b2bPriceMinor ?? 0)}
-                </td>
-                <td className="px-4 py-4">{product.variant?.available ?? 0}</td>
-                <td className="px-6 py-4 text-right">
-                  <Badge
-                    tone={product.status === "ACTIVE" ? "good" : "neutral"}
-                  >
-                    {product.status}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      setShowCreate(false);
-                      setEditing(product);
-                    }}
-                  >
-                    <Pencil className="size-3.5" /> Edit
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div>
+        <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {products.map((product) => {
+            const image = product.image ?? product.media[0]?.url;
+            return (
+              <article key={product.id} className="overflow-hidden rounded-xl border border-ink/10 bg-white">
+                <div className="relative aspect-[4/3] bg-mist">
+                  {image ? (
+                    <Image src={image} alt={product.name} fill className="object-contain p-4" sizes="(max-width: 640px) 100vw, 25vw" unoptimized={image.startsWith("http")} />
+                  ) : (
+                    <div className="grid h-full place-items-center text-forest/40"><PackageSearch className="size-8" /></div>
+                  )}
+                  <div className="absolute left-3 top-3"><Badge tone={product.status === "ACTIVE" ? "good" : "neutral"}>{product.status}</Badge></div>
+                </div>
+                <div className="p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-forest">{product.categories[0]?.name ?? "Uncategorised"}</p>
+                  <h3 className="mt-2 line-clamp-2 min-h-12 font-display text-lg font-semibold">{product.name}</h3>
+                  <p className="mt-1 text-xs text-ink/45">{product.variant?.sku ?? "No SKU"} · {product.variant?.available ?? 0} in stock</p>
+                  <div className="mt-4 flex items-end justify-between border-t border-ink/10 pt-4">
+                    <div><p className="font-display text-xl font-semibold">{formatMoney(product.variant?.retailPriceMinor ?? 0)}</p><p className="text-[10px] text-ink/45">Trade {formatMoney(product.variant?.b2bPriceMinor ?? 0)}</p></div>
+                    <Button variant="secondary" size="sm" onClick={() => { setShowCreate(false); setEditing(product); }}><Pencil className="size-3.5" /> Edit</Button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
         {loading && (
           <div className="p-12 text-center text-xs text-ink/40">
             Loading the live catalogue…

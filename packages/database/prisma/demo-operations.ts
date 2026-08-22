@@ -71,7 +71,7 @@ const ORDERS: SeedOrder[] = [
     purchaseOrder: "PO-88214",
     notes: "Split delivery accepted — please dispatch the bamboo socks first.",
     lines: [
-      { slug: "beach-hut-bamboo-socks", quantity: 10, unitPriceMinor: 545 },
+      { slug: "beach-hut-bamboo-socks", quantity: 10, unitPriceMinor: 525 },
       { slug: "fairisle-wool-sock-bundle", quantity: 8, unitPriceMinor: 1495 },
     ],
     invoice: { number: "SI-004821", daysAgo: 5 },
@@ -106,7 +106,7 @@ const ORDERS: SeedOrder[] = [
     notes: "Placed by Theo during the Bath showroom visit.",
     stockConfirmationPending: true,
     lines: [
-      { slug: "lemon-bamboo-socks", quantity: 6, unitPriceMinor: 545 },
+      { slug: "lemons-bamboo-socks", quantity: 6, unitPriceMinor: 525 },
       { slug: "fairisle-wool-sock-bundle", quantity: 4, unitPriceMinor: 1495 },
     ],
   },
@@ -122,7 +122,7 @@ const ORDERS: SeedOrder[] = [
     purchaseOrder: "PO-87990",
     lines: [
       { slug: "bamboo-pyjama-set", quantity: 5, unitPriceMinor: 2995 },
-      { slug: "beach-hut-bamboo-socks", quantity: 4, unitPriceMinor: 545 },
+      { slug: "beach-hut-bamboo-socks", quantity: 4, unitPriceMinor: 525 },
     ],
     invoice: { number: "SI-004702", daysAgo: 20 },
     shipments: [
@@ -155,7 +155,7 @@ const ORDERS: SeedOrder[] = [
     daysAgo: 12,
     email: "customer@gemjar.test",
     consumer: true,
-    lines: [{ slug: "beach-hut-bamboo-socks", quantity: 1, unitPriceMinor: 895 }],
+    lines: [{ slug: "beach-hut-bamboo-socks", quantity: 1, unitPriceMinor: 795 }],
     shipments: [
       {
         status: ShipmentStatus.DELIVERED,

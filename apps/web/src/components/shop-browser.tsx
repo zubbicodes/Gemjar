@@ -120,7 +120,7 @@ export function ShopBrowser({
         </div>
       </div>
 
-      <p aria-live="polite" className="pb-6 text-xs text-ink/70">
+      <p aria-live="polite" className="pb-6 text-xs text-ink/85">
         {visible.length} {visible.length === 1 ? "product" : "products"}
         {query.trim() ? ` matching “${query.trim()}”` : ""}
       </p>

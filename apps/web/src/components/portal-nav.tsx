@@ -94,14 +94,14 @@ export function PortalNav({
             key={label}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition ${
+            className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold transition-[background-color,color,transform] active:translate-y-px ${
               compact
                 ? active
-                  ? "bg-forest text-white"
+                  ? "bg-forest text-paper"
                   : "text-ink/60 hover:bg-forest/5 hover:text-forest"
                 : active
-                  ? "bg-white/10 text-white"
-                  : "text-white/50 hover:bg-white/[.06] hover:text-white"
+                  ? "bg-forest text-paper"
+                  : "text-ink/55 hover:bg-mist hover:text-forest"
             }`}
           >
             <Icon className="size-4 stroke-[1.7]" />

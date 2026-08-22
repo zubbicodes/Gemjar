@@ -1,6 +1,7 @@
 "use client";
 
 import { PackageSearch, Search, ShoppingBag } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
@@ -107,8 +108,12 @@ export function TradeCatalogue() {
           {products.map((product) => (
             <article
               key={product.id}
-              className="rounded-2xl border border-ink/[.08] bg-white/45 p-5"
+              className="overflow-hidden rounded-xl border border-ink/10 bg-white"
             >
+              <div className="relative aspect-[4/3] bg-mist">
+                {product.image ? <Image src={product.image} alt={product.name} fill className="object-contain p-4" sizes="(max-width: 640px) 100vw, 33vw" unoptimized={product.image.startsWith("http")} /> : <div className="grid h-full place-items-center text-forest/40"><PackageSearch className="size-8" /></div>}
+              </div>
+              <div className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <span className="grid size-11 place-items-center rounded-xl bg-forest/[.08] text-forest">
                   <PackageSearch className="size-5" />
@@ -153,6 +158,7 @@ export function TradeCatalogue() {
                 >
                   Add to order
                 </Link>
+              </div>
               </div>
             </article>
           ))}

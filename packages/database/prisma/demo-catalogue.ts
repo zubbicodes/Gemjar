@@ -5,15 +5,15 @@ const catalogue = [
   {
     name: "Beach Hut Bamboo Socks",
     slug: "beach-hut-bamboo-socks",
-    sku: "GJ-BS-284",
+    sku: "BS285",
     category: "Bamboo Socks",
     categorySlug: "bamboo-socks",
     material: "Sustainable bamboo blend",
-    price: 895,
+    price: 795,
     description:
       "Cheerful beach-hut socks made with a soft, breathable bamboo-rich blend.",
     image:
-      "https://gemjarsocks.com/cdn/shop/files/beach-hut-bamboo-socks.png",
+      "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs285b_27133511-649f-42ab-9ba4-dacf67e09fc5.jpg?v=1782208938",
     available: 18,
   },
   {
@@ -33,17 +33,17 @@ const catalogue = [
     packMultiple: 2,
   },
   {
-    name: "Lemon Bamboo Socks",
-    slug: "lemon-bamboo-socks",
-    sku: "GJ-BS-286",
+    name: "Lemons Bamboo Socks",
+    slug: "lemons-bamboo-socks",
+    sku: "BS284",
     category: "Bamboo Socks",
     categorySlug: "bamboo-socks",
     material: "Sustainable bamboo blend",
-    price: 895,
+    price: 795,
     description:
       "Bright lemon-print socks with the smooth, breathable feel of bamboo fibre.",
     image:
-      "https://gemjarsocks.com/cdn/shop/files/lemons-bamboo-socks.png",
+      "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs284b.jpg?v=1782208756",
     available: 31,
   },
   {
@@ -60,6 +60,29 @@ const catalogue = [
       "https://gemjarsocks.com/cdn/shop/files/JOYA_SEPT_20204-22.jpg",
     available: 4,
   },
+  ...([
+    ["Vegetables Bamboo Socks", "vegetables-bamboo-socks", "HA001", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/ha001_64cb47a0-6d51-46ab-b4ae-7e4b815e2f5c.jpg?v=1777462146", "Bamboo Socks", "bamboo-socks"],
+    ["Grey Hearts Bamboo Socks", "pink-hearts-bamboo-socks-size-4-7", "BS168", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/products/bs168b__PadWzEyMDAsMTIwMCwiRkZGRkZGIiwwXQ_1.jpg?v=1613200995", "Bamboo Socks", "bamboo-socks"],
+    ["Turquoise Swan Bamboo Socks", "turquoise-swan-bamboo-socks", "BS290", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs290b.jpg?v=1782210772", "Bamboo Socks", "bamboo-socks"],
+    ["Dolphin and Lighthouse Bamboo Socks", "dolphin-and-lighthouse-bamboo-socks", "BS289", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs289b.jpg?v=1782210584", "Bamboo Socks", "bamboo-socks"],
+    ["Red Hare Bamboo Socks", "red-hare-bamboo-socks", "BS288", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs288b.jpg?v=1782210130", "Bamboo Socks", "bamboo-socks"],
+    ["Blue Hedgehog Bamboo Socks", "blue-hedgehog-bamboo-socks", "BS287", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs287b.jpg?v=1782209318", "Bamboo Socks", "bamboo-socks"],
+    ["Green Guinea Pig Bamboo Socks", "green-guinea-pig-bamboo-socks", "BS286", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs286b.jpg?v=1782209129", "Bamboo Socks", "bamboo-socks"],
+    ["Scallops and Lobster Bamboo Socks", "scallops-and-lobster-bamboo-socks", "BS283", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs283b.jpg?v=1782208627", "Bamboo Socks", "bamboo-socks"],
+    ["Seaside Bamboo Socks", "seaside-bamboo-socks", "BS282", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bs282b.jpg?v=1782208159", "Bamboo Socks", "bamboo-socks"],
+    ["Sailing Boat Men's Bamboo Socks", "sailing-boat-bamboo-crew-socks", "BL647", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bl647b.jpg?v=1782137234", "Bamboo Socks", "bamboo-socks"],
+    ["Sea Shell Bamboo Crew Socks", "sea-shell-bamboo-crew-socks", "BL646", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bl646b.jpg?v=1780412567", "Bamboo Socks", "bamboo-socks"],
+    ["Pig Print Men's Bamboo Socks", "piggy-bamboo-crew-socks", "BL645", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bl645b.jpg?v=1780412406", "Bamboo Socks", "bamboo-socks"],
+    ["Chicken & Rooster Men's Bamboo Socks", "chicken-and-rooster-bamboo-crew-socks", "BL644", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bl644b.jpg?v=1780412292", "Bamboo Socks", "bamboo-socks"],
+    ["Tractor Print Men's Bamboo Socks", "tractor-bamboo-crew-socks", "BL642", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bl642b.jpg?v=1780412047", "Bamboo Socks", "bamboo-socks"],
+    ["Stag Head Men's Bamboo Socks", "stag-head-bamboo-crew-socks", "BL641", 795, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/bl641b.jpg?v=1780411194", "Bamboo Socks", "bamboo-socks"],
+    ["Flock of Sheep Gift Box", "flock-of-sheep-gift-box", "GBFlock", 3400, "https://cdn.shopify.com/s/files/1/0544/4013/2795/files/GBFlock.png?v=1786375387", "Gifts", "gifts"],
+  ] as const).map(([name, slug, sku, price, image, category, categorySlug], index) => ({
+    name, slug, sku, price, image, category, categorySlug,
+    material: category === "Gifts" ? "Mixed sock selection" : "Bamboo-rich blend",
+    description: category === "Gifts" ? "A ready-to-gift Gemjar sock selection." : "Colourful bamboo-rich crew socks from the current Gemjar collection.",
+    available: 12 + (index % 9),
+  })),
 ] as const;
 
 export async function seedDeliveryMethods(prisma: PrismaClient) {
@@ -197,7 +220,7 @@ export async function seedTradePricing(prisma: PrismaClient) {
     where: { accountNumber: TRADE_ACCOUNT_NUMBER },
   });
   const products = await prisma.product.findMany({
-    where: { slug: { in: ["beach-hut-bamboo-socks", "fairisle-wool-sock-bundle", "lemon-bamboo-socks"] } },
+    where: { slug: { in: catalogue.map((item) => item.slug) } },
     include: { variants: true },
   });
   await prisma.organizationProductAccess.deleteMany({
@@ -225,7 +248,7 @@ export async function seedTradePricing(prisma: PrismaClient) {
           {
             variantId: beachHut.id,
             minQuantity: 1,
-            unitPriceMinor: 545,
+            unitPriceMinor: 525,
             rule: "CUSTOMER_FIXED",
           },
         ]

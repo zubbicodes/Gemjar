@@ -14,8 +14,8 @@ const config: Config = {
         mist: "rgb(var(--mist) / <alpha-value>)",
       },
       fontFamily: {
-        sans: ["var(--font-manrope)", "sans-serif"],
-        display: ["var(--font-bricolage)", "sans-serif"],
+        sans: ["var(--font-karla)", "sans-serif"],
+        display: ["var(--font-jost)", "sans-serif"],
       },
       boxShadow: {
         lift: "0 28px 80px -36px rgb(18 30 26 / 0.32)",

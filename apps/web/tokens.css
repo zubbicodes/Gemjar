@@ -1,21 +1,24 @@
-/* Hallmark · macrostructure: Catalogue · tone: playful · anchor hue: coral · nav: N12 banner + retract · footer: Ft8 marquee */
+/* Hallmark · genre: modern-minimal · macrostructure: Catalogue + Workbench · design-system: design.md · designed-as-app */
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 :root {
-  --color-paper: oklch(97% 0.022 88);
-  --color-paper-2: oklch(92% 0.047 88);
-  --color-ink: oklch(25% 0.035 255);
-  --color-muted: oklch(49% 0.038 255);
-  --color-rule: oklch(82% 0.042 88);
-  --color-accent: oklch(63% 0.20 30);
-  --color-accent-ink: oklch(98% 0.018 88);
-  --color-focus: oklch(55% 0.16 250);
+  --color-paper: oklch(98% 0.006 225);
+  --color-paper-2: oklch(96% 0.009 225);
+  --color-paper-3: oklch(92% 0.014 225);
+  --color-ink: oklch(37% 0.014 240);
+  --color-ink-2: oklch(48% 0.018 240);
+  --color-muted: oklch(53% 0.020 235);
+  --color-rule: oklch(88% 0.014 225);
+  --color-accent: oklch(55% 0.070 230);
+  --color-accent-2: oklch(61% 0.145 10);
+  --color-accent-ink: oklch(98% 0.006 225);
+  --color-focus: oklch(58% 0.115 230);
   --color-error: oklch(48% 0.17 25);
   --color-success: oklch(43% 0.11 155);
-  --color-sun: oklch(82% 0.16 85);
-  --color-sky: oklch(70% 0.12 235);
-  --color-mint: oklch(82% 0.09 165);
-  --font-display: var(--font-bricolage);
-  --font-body: var(--font-manrope);
+  --color-sun: oklch(84% 0.150 90);
+  --color-sky: oklch(79% 0.055 225);
+  --color-mint: oklch(86% 0.050 175);
+  --font-display: var(--font-jost);
+  --font-body: var(--font-karla);
   --space-3xs: 0.125rem;
   --space-2xs: 0.25rem;
   --space-xs: 0.5rem;
@@ -37,6 +40,9 @@
   --dur-short: 220ms;
   --dur-long: 420ms;
   --rule-thin: 1px;
-  --radius-control: 0.75rem;
-  --radius-surface: 1.75rem;
+  --radius-control: 0.625rem;
+  --radius-surface: 1rem;
+  --radius-card: 1rem;
+  --radius-pill: 999px;
+  --radius-input: 0.625rem;
 }

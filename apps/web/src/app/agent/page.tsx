@@ -5,7 +5,7 @@ export const metadata = { title: "Agent workspace" };
 
 export default function AgentPage() {
   return (
-    <PortalShell kind="agent" title="Your customer book." context="Assigned customers only">
+    <PortalShell kind="agent" title="Sales workspace" context="Assigned customers only">
       <AgentWorkspace />
     </PortalShell>
   );

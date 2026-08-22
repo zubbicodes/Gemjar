@@ -5,7 +5,7 @@ export const metadata = { title: "Operations" };
 
 export default function AdminPage() {
   return (
-    <PortalShell kind="admin" title="Good morning, Amara." context="Gemjar operations">
+    <PortalShell kind="admin" title="Operations overview" context="Gemjar operations">
       <AdminDashboard />
     </PortalShell>
   );
