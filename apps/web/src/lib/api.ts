@@ -36,11 +36,11 @@ function mapProduct(item: ApiProduct): Product | null {
     image:
       item.image ??
       fallbackProducts.find((product) => product.slug === item.slug)?.image ??
-      "/images/gemjar-hero.png",
+      "https://gemjarsocks.com/cdn/shop/files/beach-hut-bamboo-socks.png",
     images: item.media?.length
       ? item.media.map(({ url, alt }) => ({ url, alt }))
       : undefined,
-    accent: "#c9b99c",
+    accent: "#e94f37",
     availability:
       item.variant.available > 8
         ? "In stock"
@@ -48,7 +48,7 @@ function mapProduct(item: ApiProduct): Product | null {
           ? "Low stock"
           : "Made to order",
     material:
-      item.variant.attributes?.material ?? "Gemjar selected materials",
+      item.variant.attributes?.material ?? "Gemjar fabric blend",
   };
 }
 
@@ -83,15 +83,15 @@ export type StorefrontContent = {
 };
 export async function getStorefrontContent(): Promise<StorefrontContent> {
   const fallback = {
-    eyebrow: "The autumn atelier",
-    headline: "Objects of quiet",
-    emphasis: "distinction.",
+    eyebrow: "Colour for everyday comfort",
+    headline: "Socks with",
+    emphasis: "personality.",
     introduction:
-      "Considered jewellery for modern rituals. Precious materials, sculptural forms, and pieces made to remain.",
-    heroImageUrl: "/images/gemjar-hero.png",
-    tradeHeadline: "A better way to buy, built around your business.",
+      "Soft bamboo socks, warm wool blends and cosy apparel in original, colourful Gemjar designs.",
+    heroImageUrl: "https://gemjarsocks.com/cdn/shop/files/GEMJAR_BOXES-3_copy_14225217-3744-4b06-adf3-0696b6e94cbb.jpg",
+    tradeHeadline: "Colourful collections for independent shops.",
     tradeIntroduction:
-      "Customer-specific pricing, intelligent reordering and a catalogue curated for your store—all in one calm workspace.",
+      "Browse socks, hats, gloves and cosy apparel with trade pricing, quick reordering and account tools in one place.",
     deliveryPolicy:
       "UK orders are prepared after payment and stock confirmation. Available delivery services, prices and estimated times are shown before checkout. Tracking appears in your account when a shipment is dispatched.",
     returnsPolicy:

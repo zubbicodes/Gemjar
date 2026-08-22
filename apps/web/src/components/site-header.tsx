@@ -12,7 +12,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-ink/10 bg-paper/90 backdrop-blur-xl">
       <div className="bg-forest px-4 py-2 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">
-        Complimentary UK delivery on orders over £150
+        Free standard UK delivery over £150 · Trade customers welcome
       </div>
       <div className="mx-auto flex h-[74px] max-w-[1440px] items-center justify-between px-5 lg:px-10">
         <button
@@ -27,10 +27,11 @@ export function SiteHeader() {
         </button>
         <BrandMark />
         <nav className="hidden items-center gap-9 lg:flex" aria-label="Main navigation">
-          <Link className="nav-link" href="/shop">New arrivals</Link>
-          <Link className="nav-link" href="/shop">Collections</Link>
-          <Link className="nav-link" href="/shop?category=rings">Rings</Link>
-          <Link className="nav-link" href="/shop?category=necklaces">Necklaces</Link>
+          <Link className="nav-link" href="/shop">New</Link>
+          <Link className="nav-link" href="/shop?category=bamboo-socks">Bamboo socks</Link>
+          <Link className="nav-link" href="/shop?category=wool-and-cosy">Wool &amp; cosy</Link>
+          <Link className="nav-link" href="/shop?category=sleepwear">Sleepwear</Link>
+          <Link className="nav-link" href="/shop?category=gifts">Gifts</Link>
           <Link className="nav-link" href="/trade">Trade</Link>
         </nav>
         <div className="flex items-center gap-1 text-ink/75">
@@ -50,9 +51,11 @@ export function SiteHeader() {
           className="grid border-t border-ink/10 bg-paper px-5 py-3 lg:hidden"
         >
           {([
-            ["Shop", "/shop"],
-            ["Rings", "/shop?category=rings"],
-            ["Necklaces", "/shop?category=necklaces"],
+            ["New", "/shop"],
+            ["Bamboo socks", "/shop?category=bamboo-socks"],
+            ["Wool & cosy", "/shop?category=wool-and-cosy"],
+            ["Sleepwear", "/shop?category=sleepwear"],
+            ["Gifts", "/shop?category=gifts"],
             ["Trade", "/trade"],
             ["My account", "/account"],
             ["Favourites", "/account/favourites"],

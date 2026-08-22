@@ -1,11 +1,11 @@
 {
-  "name": "Gemjar Commerce",
+  "name": "Gemjar Socks & Apparel",
   "short_name": "Gemjar",
-  "description": "Gemjar storefront, trade ordering and account access.",
+  "description": "Colourful bamboo and wool-blend socks, cosy apparel and trade ordering.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f1e8",
-  "theme_color": "#12372f",
+  "theme_color": "#e94f37",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },

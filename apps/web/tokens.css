@@ -1,17 +1,20 @@
-/* Hallmark · Workbench · modern-minimal · Studio · forest · contrast: pass (40–41) · nav: secure-minimal · footer: none · slop: pass (1–58) */
-/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4 */
+/* Hallmark · macrostructure: Catalogue · tone: playful · anchor hue: coral · nav: N12 banner + retract · footer: Ft8 marquee */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 :root {
-  --color-paper: oklch(96% 0.014 85);
-  --color-paper-2: oklch(92% 0.018 85);
-  --color-ink: oklch(23% 0.018 165);
-  --color-muted: oklch(48% 0.018 165);
-  --color-rule: oklch(81% 0.014 85);
-  --color-accent: oklch(34% 0.055 165);
-  --color-accent-ink: oklch(97% 0.012 85);
-  --color-focus: oklch(67% 0.11 85);
+  --color-paper: oklch(97% 0.022 88);
+  --color-paper-2: oklch(92% 0.047 88);
+  --color-ink: oklch(25% 0.035 255);
+  --color-muted: oklch(49% 0.038 255);
+  --color-rule: oklch(82% 0.042 88);
+  --color-accent: oklch(63% 0.20 30);
+  --color-accent-ink: oklch(98% 0.018 88);
+  --color-focus: oklch(55% 0.16 250);
   --color-error: oklch(48% 0.17 25);
   --color-success: oklch(43% 0.11 155);
-  --font-display: var(--font-cormorant);
+  --color-sun: oklch(82% 0.16 85);
+  --color-sky: oklch(70% 0.12 235);
+  --color-mint: oklch(82% 0.09 165);
+  --font-display: var(--font-bricolage);
   --font-body: var(--font-manrope);
   --space-3xs: 0.125rem;
   --space-2xs: 0.25rem;

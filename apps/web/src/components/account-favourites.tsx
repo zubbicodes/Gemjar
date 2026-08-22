@@ -76,7 +76,7 @@ export function AccountFavourites() {
   return (
     <section className="surface overflow-hidden">
       <PanelHeading
-        title="Saved pieces"
+        title="Saved products"
         description="Products saved to this account for later."
       />
       {error && <ErrorRow message={error} />}

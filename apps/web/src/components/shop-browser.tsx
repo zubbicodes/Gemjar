@@ -7,11 +7,11 @@ import type { Product } from "@/lib/catalogue";
 
 const CATEGORIES: Array<[label: string, match: (product: Product) => boolean]> =
   [
-    ["All pieces", () => true],
-    ["Rings", (product) => /-RNG-/i.test(product.sku)],
-    ["Necklaces", (product) => /-NK-/i.test(product.sku)],
-    ["Earrings", (product) => /-ER-/i.test(product.sku)],
-    ["Bracelets", (product) => /-BR-/i.test(product.sku)],
+    ["All products", () => true],
+    ["Bamboo Socks", (product) => product.collection === "Bamboo Socks"],
+    ["Wool & Cosy", (product) => product.collection === "Wool & Cosy"],
+    ["Sleepwear", (product) => product.collection === "Sleepwear"],
+    ["Gifts", (product) => /bundle|gift/i.test(`${product.name} ${product.collection}`)],
   ];
 
 const SORTS = {
@@ -37,7 +37,7 @@ export function ShopBrowser({
   products: Product[];
   initialCategory?: string;
 }) {
-  const normalizedCategory = requestedCategory?.toLowerCase();
+  const normalizedCategory = requestedCategory?.toLowerCase().replaceAll("-", " ");
   const initialCategory = CATEGORIES.findIndex(
     ([label]) => label.toLowerCase() === normalizedCategory,
   );
@@ -121,7 +121,7 @@ export function ShopBrowser({
       </div>
 
       <p aria-live="polite" className="pb-6 text-xs text-ink/70">
-        {visible.length} {visible.length === 1 ? "piece" : "pieces"}
+        {visible.length} {visible.length === 1 ? "product" : "products"}
         {query.trim() ? ` matching “${query.trim()}”` : ""}
       </p>
 

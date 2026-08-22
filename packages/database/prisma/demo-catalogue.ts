@@ -3,49 +3,61 @@ import { TRADE_ACCOUNT_NUMBER } from "./demo-users";
 
 const catalogue = [
   {
-    name: "Verdant Signet",
-    slug: "verdant-signet",
-    sku: "GJ-RNG-042",
-    price: 18900,
+    name: "Beach Hut Bamboo Socks",
+    slug: "beach-hut-bamboo-socks",
+    sku: "GJ-BS-284",
+    category: "Bamboo Socks",
+    categorySlug: "bamboo-socks",
+    material: "Sustainable bamboo blend",
+    price: 895,
     description:
-      "A sculptural signet in satin gold, set with a deep green lab-grown emerald.",
+      "Cheerful beach-hut socks made with a soft, breathable bamboo-rich blend.",
     image:
-      "https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=1200&q=88",
+      "https://gemjarsocks.com/cdn/shop/files/beach-hut-bamboo-socks.png",
     available: 18,
   },
   {
-    name: "Luna Hoops",
-    slug: "luna-hoops",
-    sku: "GJ-ER-118",
-    price: 9600,
+    name: "Fairisle Wool Sock Bundle",
+    slug: "fairisle-wool-sock-bundle",
+    sku: "GJ-WS-640",
+    category: "Wool & Cosy",
+    categorySlug: "wool-and-cosy",
+    material: "Wool-rich blend",
+    price: 2495,
     description:
-      "Quietly bold hoops with a softly brushed finish and balanced weight.",
+      "A warm Fairisle-inspired sock bundle for colder days and cosy gifting.",
     image:
-      "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1200&q=88",
+      "https://gemjarsocks.com/cdn/shop/files/FAIRISLE_BUNDLE.jpg",
     available: 7,
     moq: 2,
     packMultiple: 2,
   },
   {
-    name: "Serein Chain",
-    slug: "serein-chain",
-    sku: "GJ-NK-207",
-    price: 14200,
+    name: "Lemon Bamboo Socks",
+    slug: "lemon-bamboo-socks",
+    sku: "GJ-BS-286",
+    category: "Bamboo Socks",
+    categorySlug: "bamboo-socks",
+    material: "Sustainable bamboo blend",
+    price: 895,
     description:
-      "An understated chain with a hand-finished clasp, designed for daily layering.",
+      "Bright lemon-print socks with the smooth, breathable feel of bamboo fibre.",
     image:
-      "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=1200&q=88",
+      "https://gemjarsocks.com/cdn/shop/files/lemons-bamboo-socks.png",
     available: 31,
   },
   {
-    name: "Solitaire Cuff",
-    slug: "solitaire-cuff",
-    sku: "GJ-BR-076",
-    price: 22500,
+    name: "Bamboo Pyjama Set",
+    slug: "bamboo-pyjama-set",
+    sku: "GJ-PJ-101",
+    category: "Sleepwear",
+    categorySlug: "sleepwear",
+    material: "Bamboo-rich jersey",
+    price: 4495,
     description:
-      "A precise open cuff punctuated with a bezel-set white sapphire.",
+      "A soft bamboo pyjama set made for breathable lounging and comfortable sleep.",
     image:
-      "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?auto=format&fit=crop&w=1200&q=88",
+      "https://gemjarsocks.com/cdn/shop/files/JOYA_SEPT_20204-22.jpg",
     available: 4,
   },
 ] as const;
@@ -99,12 +111,12 @@ export async function seedDeliveryMethods(prisma: PrismaClient) {
 }
 
 export async function seedCatalogue(prisma: PrismaClient) {
-  const category = await prisma.category.upsert({
-    where: { slug: "atelier-edit" },
-    update: { name: "The Atelier Edit" },
-    create: { name: "The Atelier Edit", slug: "atelier-edit" },
-  });
   for (const item of catalogue) {
+    const category = await prisma.category.upsert({
+      where: { slug: item.categorySlug },
+      update: { name: item.category },
+      create: { name: item.category, slug: item.categorySlug },
+    });
     const product = await prisma.product.upsert({
       where: { slug: item.slug },
       update: {
@@ -126,6 +138,7 @@ export async function seedCatalogue(prisma: PrismaClient) {
             b2bPriceMinor: Math.round(item.price * 0.68),
             moq: "moq" in item ? item.moq : 1,
             packMultiple: "packMultiple" in item ? item.packMultiple : 1,
+            attributes: { material: item.material },
           },
         },
       },
@@ -140,6 +153,7 @@ export async function seedCatalogue(prisma: PrismaClient) {
           b2bPriceMinor: Math.round(item.price * 0.68),
           moq: "moq" in item ? item.moq : 1,
           packMultiple: "packMultiple" in item ? item.packMultiple : 1,
+          attributes: { material: item.material },
         },
       });
       const stockCount = await prisma.stockSnapshot.count({
@@ -151,7 +165,7 @@ export async function seedCatalogue(prisma: PrismaClient) {
             variantId: variant.id,
             available: item.available,
             capturedAt:
-              item.slug === "luna-hoops"
+              item.slug === "fairisle-wool-sock-bundle"
                 ? new Date(Date.now() - 18 * 60_000)
                 : new Date(),
             provider: "MINTSOFT_DEMO",
@@ -168,6 +182,14 @@ export async function seedCatalogue(prisma: PrismaClient) {
         },
       });
   }
+  await prisma.product.updateMany({
+    where: {
+      slug: {
+        in: ["verdant-signet", "luna-hoops", "serein-chain", "solitaire-cuff"],
+      },
+    },
+    data: { status: ProductStatus.INACTIVE },
+  });
 }
 
 export async function seedTradePricing(prisma: PrismaClient) {
@@ -175,7 +197,7 @@ export async function seedTradePricing(prisma: PrismaClient) {
     where: { accountNumber: TRADE_ACCOUNT_NUMBER },
   });
   const products = await prisma.product.findMany({
-    where: { slug: { in: ["verdant-signet", "luna-hoops", "serein-chain"] } },
+    where: { slug: { in: ["beach-hut-bamboo-socks", "fairisle-wool-sock-bundle", "lemon-bamboo-socks"] } },
     include: { variants: true },
   });
   await prisma.organizationProductAccess.deleteMany({
@@ -187,9 +209,9 @@ export async function seedTradePricing(prisma: PrismaClient) {
       productId: product.id,
     })),
   });
-  const verdant = products.find((product) => product.slug === "verdant-signet")
+  const beachHut = products.find((product) => product.slug === "beach-hut-bamboo-socks")
     ?.variants[0];
-  const luna = products.find((product) => product.slug === "luna-hoops")
+  const fairisle = products.find((product) => product.slug === "fairisle-wool-sock-bundle")
     ?.variants[0];
   await prisma.customerPrice.deleteMany({
     where: { organizationId: organization.id },
@@ -198,28 +220,28 @@ export async function seedTradePricing(prisma: PrismaClient) {
     where: { organizationId: organization.id },
   });
   const prices = [
-    ...(verdant
+    ...(beachHut
       ? [
           {
-            variantId: verdant.id,
+            variantId: beachHut.id,
             minQuantity: 1,
-            unitPriceMinor: 11500,
+            unitPriceMinor: 545,
             rule: "CUSTOMER_FIXED",
           },
         ]
       : []),
-    ...(luna
+    ...(fairisle
       ? [
           {
-            variantId: luna.id,
+            variantId: fairisle.id,
             minQuantity: 1,
-            unitPriceMinor: 6400,
+            unitPriceMinor: 1595,
             rule: "CUSTOMER_FIXED",
           },
           {
-            variantId: luna.id,
+            variantId: fairisle.id,
             minQuantity: 4,
-            unitPriceMinor: 5900,
+            unitPriceMinor: 1495,
             rule: "CUSTOMER_QUANTITY_TIER",
           },
         ]

@@ -2,7 +2,7 @@ import { Clock3 } from "lucide-react";
 
 const copy: Record<string, { title: string; description: string }> = {
   favourites: {
-    title: "Saved pieces",
+    title: "Saved products",
     description: "Saved-product management is not available yet.",
   },
   profile: {

@@ -1,35 +1,35 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test("storefront remains usable by keyboard and at narrow width", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto("/");
-  await expect(page.locator("h1")).toBeVisible();
-  await page.keyboard.press("Tab");
-  await expect(page.locator(":focus")).toBeVisible();
-  const overflow = await page.evaluate(
-    () =>
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth,
-  );
-  expect(overflow).toBe(false);
-  await expect(
-    page.getByRole("link", { name: /explore the collection/i }),
-  ).toHaveAttribute("href", "/shop");
-  await page.getByRole("button", { name: /open navigation/i }).click();
-  await expect(
-    page.getByRole("navigation", { name: /mobile navigation/i }),
-  ).toBeVisible();
-});
+for (const width of [320, 375, 414, 768]) {
+  test(`storefront remains usable at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(page.locator("h1")).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(page.locator(":focus")).toBeVisible();
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(false);
+    await expect(
+      page.getByRole("link", { name: /shop colourful comfort/i }),
+    ).toHaveAttribute("href", "/shop");
+    await page.getByRole("button", { name: /open navigation/i }).click();
+    await expect(
+      page.getByRole("navigation", { name: /mobile navigation/i }),
+    ).toBeVisible();
+  });
+}
 
 test("catalogue search exposes live product controls", async ({ page }) => {
   await page.goto("/shop");
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Verdant Signet" }),
+    page.getByRole("link", { name: "Beach Hut Bamboo Socks" }),
   ).toBeVisible();
 });
 

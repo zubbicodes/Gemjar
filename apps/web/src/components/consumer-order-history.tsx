@@ -167,7 +167,7 @@ export function ConsumerOrderHistory() {
           </header>
           <div className="grid gap-8 p-5 sm:p-6 lg:grid-cols-[1fr_300px]">
             <div>
-              <h3 className="text-sm font-bold">Pieces</h3>
+              <h3 className="text-sm font-bold">Products</h3>
               <div className="mt-4 divide-y divide-ink/[.07]">
                 {order.items.map((item) => (
                   <div

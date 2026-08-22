@@ -23,7 +23,7 @@ export function ProductCard({
           src={product.image}
           alt={product.name}
           fill
-          className="object-cover transition duration-700 group-hover:scale-[1.035]"
+          className="object-contain p-5 transition duration-700 group-hover:scale-[1.035]"
           sizes="(max-width: 768px) 90vw, 25vw"
           unoptimized={product.image.startsWith("http")}
         />

@@ -263,7 +263,7 @@ export function CheckoutFlow() {
             Your basket is empty.
           </h1>
           <p className="mt-3 text-sm text-ink/65">
-            Choose a piece before beginning checkout.
+            Choose a product before beginning checkout.
           </p>
           <Link
             href="/shop"

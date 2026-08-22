@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 for (const width of [320, 375, 414, 768]) {
   test(`checkout remains usable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/shop/verdant-signet");
+    await page.goto("/shop/beach-hut-bamboo-socks");
     await page
-      .getByRole("button", { name: /add verdant signet to basket/i })
+      .getByRole("button", { name: /add beach hut bamboo socks to basket/i })
       .click();
     await page.goto("/checkout");
     await expect(
@@ -31,9 +31,9 @@ test("guest checkout reaches verified mock payment confirmation", async ({
     "Requires PostgreSQL/API full stack",
   );
   await page.setViewportSize({ width: 375, height: 900 });
-  await page.goto("/shop/verdant-signet");
+  await page.goto("/shop/beach-hut-bamboo-socks");
   await page
-    .getByRole("button", { name: /add verdant signet to basket/i })
+    .getByRole("button", { name: /add beach hut bamboo socks to basket/i })
     .click();
   await page.goto("/checkout");
   await page.getByLabel("First name").fill("Maya");

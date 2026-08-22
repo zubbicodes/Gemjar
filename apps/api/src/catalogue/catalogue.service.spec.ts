@@ -5,9 +5,9 @@ describe("trade catalogue pricing", () => {
   it("returns the customer's effective price at the variant MOQ", async () => {
     const product = {
       id: "product-1",
-      name: "Verdant Signet",
-      slug: "verdant-signet",
-      description: "A signet ring",
+      name: "Beach Hut Bamboo Socks",
+      slug: "beach-hut-bamboo-socks",
+      description: "Soft bamboo-rich socks",
       status: "ACTIVE",
       b2cVisible: true,
       b2bVisible: true,
@@ -20,10 +20,10 @@ describe("trade catalogue pricing", () => {
       variants: [
         {
           id: "variant-1",
-          sku: "GJ-RNG-042",
+          sku: "GJ-BS-284",
           name: null,
-          retailPriceMinor: 18900,
-          b2bPriceMinor: 12850,
+          retailPriceMinor: 895,
+          b2bPriceMinor: 610,
           vatRateBasis: 2000,
           moq: 2,
           packMultiple: 2,
@@ -43,7 +43,7 @@ describe("trade catalogue pricing", () => {
           {
             variantId: "variant-1",
             minQuantity: 2,
-            unitPriceMinor: 11000,
+            unitPriceMinor: 545,
           },
         ]),
       },
@@ -53,7 +53,7 @@ describe("trade catalogue pricing", () => {
     const [result] = await service.listForOrganization("org-1");
 
     expect(result?.variant).toMatchObject({
-      resolvedTradePriceMinor: 11000,
+      resolvedTradePriceMinor: 545,
       resolvedTradePriceRule: "CUSTOMER_QUANTITY_TIER",
     });
   });

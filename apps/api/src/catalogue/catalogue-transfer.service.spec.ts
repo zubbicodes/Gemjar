@@ -21,7 +21,7 @@ describe("catalogue CSV staging", () => {
   it("retains valid rows for a separate idempotent commit", async () => {
     const { transfers, create } = service();
     const csv =
-      "name,slug,sku,description,retailPrice,b2bPrice,moq,packMultiple,category,imageUrl\nVerdant Ring,verdant-ring,GJ-100,A considered verdant ring,120.00,90.00,1,1,Rings,https://example.test/ring.jpg\n";
+      "name,slug,sku,description,retailPrice,b2bPrice,moq,packMultiple,category,imageUrl\nBeach Hut Socks,beach-hut-socks,GJ-100,Soft bamboo-rich socks,8.95,5.45,1,1,Bamboo Socks,https://example.test/socks.jpg\n";
     const result = await transfers.stage(csv, "import-key-100", "admin-1");
     expect(result).toEqual(
       expect.objectContaining({
@@ -65,16 +65,16 @@ describe("catalogue CSV staging", () => {
       "imageUrl",
     ]);
     sheet.addRow([
-      "Verdant Ring",
-      "verdant-ring",
+      "Beach Hut Socks",
+      "beach-hut-socks",
       "GJ-101",
-      "A considered verdant ring",
-      120,
-      90,
+      "Soft bamboo-rich socks",
+      8.95,
+      5.45,
       1,
       1,
-      "Rings",
-      "https://example.test/ring.jpg",
+      "Bamboo Socks",
+      "https://example.test/socks.jpg",
     ]);
     const buffer = await workbook.xlsx.writeBuffer();
     const { transfers, create } = service();

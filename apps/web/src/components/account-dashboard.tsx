@@ -69,7 +69,7 @@ export function AccountDashboard() {
         />
         <MetricCard
           icon={Heart}
-          label="Saved pieces"
+          label="Saved products"
           value={String(profile.data?._count.favourites ?? 0)}
           note="Account favourites"
           trend="neutral"

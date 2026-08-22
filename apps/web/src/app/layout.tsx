@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Manrope, Poppins } from "next/font/google";
+import { Bricolage_Grotesque, Manrope, Poppins } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { CartPersistence } from "@/components/cart-persistence";
@@ -9,10 +9,9 @@ const manrope = Manrope({
   variable: "--font-manrope",
   display: "swap",
 });
-const cormorant = Cormorant_Garamond({
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
-  variable: "--font-cormorant",
-  weight: ["500", "600", "700"],
+  variable: "--font-bricolage",
   display: "swap",
 });
 const poppins = Poppins({
@@ -23,13 +22,13 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://gemjar.example"),
+  metadataBase: new URL("https://gemjarsocks.com"),
   title: {
-    default: "Gemjar — Objects of quiet distinction",
+    default: "Gemjar — Colourful bamboo and wool socks",
     template: "%s — Gemjar",
   },
   description:
-    "Considered jewellery and objects, selected for their material beauty and lasting character.",
+    "Colourful bamboo and wool-blend socks, cosy accessories and bamboo nightwear from Gemjar.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -39,7 +38,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#12372f",
+  themeColor: "#e94f37",
   colorScheme: "light",
 };
 
@@ -49,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${manrope.variable} ${cormorant.variable} ${poppins.variable}`}
+      className={`${manrope.variable} ${bricolage.variable} ${poppins.variable}`}
     >
       <body>
         <PwaRegister />

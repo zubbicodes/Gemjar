@@ -29,7 +29,7 @@ export default async function ProductPage({
     <main>
       <SiteHeader />
       <div className="mx-auto max-w-[1440px] px-5 py-6 text-[11px] text-ink/45 lg:px-10">
-        Collection <ChevronRight className="mx-2 inline size-3" />{" "}
+        Shop <ChevronRight className="mx-2 inline size-3" />{" "}
         {product.collection}
       </div>
       <section className="mx-auto grid max-w-[1440px] gap-10 px-5 pb-24 lg:grid-cols-[1.15fr_.85fr] lg:px-10">
@@ -56,7 +56,7 @@ export default async function ProductPage({
         </div>
         <div className="flex flex-col justify-center lg:px-12">
           <p className="eyebrow">{product.collection}</p>
-          <h1 className="mt-4 font-display text-6xl font-semibold tracking-[-0.04em]">
+          <h1 className="display-safe mt-4 font-display text-6xl font-extrabold tracking-[-0.05em]">
             {product.name}
           </h1>
           <p className="mt-4 text-xl font-semibold">
@@ -67,7 +67,7 @@ export default async function ProductPage({
           </p>
           <dl className="mt-8 grid grid-cols-2 gap-4 border-y border-ink/10 py-5 text-xs">
             <div>
-              <dt className="text-ink/40">Material</dt>
+              <dt className="text-ink/40">Composition</dt>
               <dd className="mt-1 font-semibold">{product.material}</dd>
             </div>
             <div>
@@ -81,11 +81,11 @@ export default async function ProductPage({
           <div className="mt-8 space-y-4 text-xs text-ink/60">
             <p className="flex items-center gap-3">
               <PackageCheck className="size-4 text-forest" /> Complimentary
-              insured UK delivery over £150
+              tracked UK delivery over £150
             </p>
             <p className="flex items-center gap-3">
-              <ShieldCheck className="size-4 text-forest" /> Made with care and
-              covered by our guarantee
+              <ShieldCheck className="size-4 text-forest" /> Soft fabrics,
+              thoughtful designs and easy returns
             </p>
           </div>
         </div>
@@ -93,7 +93,7 @@ export default async function ProductPage({
       <section className="mx-auto max-w-[1440px] px-5 pb-24 lg:px-10">
         <p className="eyebrow">You may also like</p>
         <h2 className="mt-3 font-display text-4xl font-semibold">
-          Related pieces
+          More colourful comfort
         </h2>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {catalogue

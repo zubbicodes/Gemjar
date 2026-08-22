@@ -69,10 +69,10 @@ const ORDERS: SeedOrder[] = [
     email: "buyer@gemjar.test",
     organization: true,
     purchaseOrder: "PO-88214",
-    notes: "Split delivery accepted — please dispatch the signets first.",
+    notes: "Split delivery accepted — please dispatch the bamboo socks first.",
     lines: [
-      { slug: "verdant-signet", quantity: 10, unitPriceMinor: 11500 },
-      { slug: "luna-hoops", quantity: 8, unitPriceMinor: 5900 },
+      { slug: "beach-hut-bamboo-socks", quantity: 10, unitPriceMinor: 545 },
+      { slug: "fairisle-wool-sock-bundle", quantity: 8, unitPriceMinor: 1495 },
     ],
     invoice: { number: "SI-004821", daysAgo: 5 },
     shipments: [
@@ -106,8 +106,8 @@ const ORDERS: SeedOrder[] = [
     notes: "Placed by Theo during the Bath showroom visit.",
     stockConfirmationPending: true,
     lines: [
-      { slug: "serein-chain", quantity: 6, unitPriceMinor: 9656 },
-      { slug: "luna-hoops", quantity: 4, unitPriceMinor: 5900 },
+      { slug: "lemon-bamboo-socks", quantity: 6, unitPriceMinor: 545 },
+      { slug: "fairisle-wool-sock-bundle", quantity: 4, unitPriceMinor: 1495 },
     ],
   },
   {
@@ -121,8 +121,8 @@ const ORDERS: SeedOrder[] = [
     organization: true,
     purchaseOrder: "PO-87990",
     lines: [
-      { slug: "solitaire-cuff", quantity: 5, unitPriceMinor: 15300 },
-      { slug: "verdant-signet", quantity: 4, unitPriceMinor: 11500 },
+      { slug: "bamboo-pyjama-set", quantity: 5, unitPriceMinor: 2995 },
+      { slug: "beach-hut-bamboo-socks", quantity: 4, unitPriceMinor: 545 },
     ],
     invoice: { number: "SI-004702", daysAgo: 20 },
     shipments: [
@@ -144,7 +144,7 @@ const ORDERS: SeedOrder[] = [
     daysAgo: 0,
     email: "customer@gemjar.test",
     consumer: true,
-    lines: [{ slug: "luna-hoops", quantity: 2, unitPriceMinor: 9600 }],
+    lines: [{ slug: "fairisle-wool-sock-bundle", quantity: 2, unitPriceMinor: 2495 }],
   },
   {
     number: "GJ-2026-000114",
@@ -155,7 +155,7 @@ const ORDERS: SeedOrder[] = [
     daysAgo: 12,
     email: "customer@gemjar.test",
     consumer: true,
-    lines: [{ slug: "verdant-signet", quantity: 1, unitPriceMinor: 18900 }],
+    lines: [{ slug: "beach-hut-bamboo-socks", quantity: 1, unitPriceMinor: 895 }],
     shipments: [
       {
         status: ShipmentStatus.DELIVERED,
@@ -167,7 +167,7 @@ const ORDERS: SeedOrder[] = [
     ],
     returnRequest: {
       type: "RETURN",
-      reason: "Ring size too small — exchange requested.",
+      reason: "Gift recipient preferred another pattern — exchange requested.",
       status: RequestStatus.REQUESTED,
     },
   },
@@ -180,7 +180,7 @@ const ORDERS: SeedOrder[] = [
     daysAgo: 1,
     email: "customer@gemjar.test",
     consumer: true,
-    lines: [{ slug: "serein-chain", quantity: 1, unitPriceMinor: 14200 }],
+    lines: [{ slug: "bamboo-pyjama-set", quantity: 1, unitPriceMinor: 4495 }],
   },
 ];
 
