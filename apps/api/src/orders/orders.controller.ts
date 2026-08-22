@@ -1,9 +1,8 @@
-import { Body, Controller, Get, Headers, Post } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
 import { ApiHeader, ApiTags } from "@nestjs/swagger";
 import {
   IsArray,
   IsEmail,
-  IsIn,
   IsInt,
   IsObject,
   IsOptional,
@@ -13,23 +12,13 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import { OrdersService } from "./orders.service";
-import { Public, RequirePermissions } from "../auth/auth.decorators";
+import { RequirePermissions } from "../auth/auth.decorators";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 
 class OrderItemDto {
   @IsString() variantId: string;
   @IsInt() @Min(1) quantity: number;
-}
-class CreateOrderDto {
-  @IsIn(["B2C"]) channel: "B2C";
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => OrderItemDto)
-  items: OrderItemDto[];
-  @IsEmail() email: string;
-  @IsObject() deliveryAddress: Record<string, string>;
-  @IsOptional() @IsString() notes?: string;
 }
 class CreateTradeOrderDto {
   @IsString() organizationId: string;
@@ -53,14 +42,17 @@ export class OrdersController {
   @Get("mine") mine(@CurrentUser() user: AuthenticatedUser) {
     return this.orders.mine(user);
   }
-  @Public()
-  @Post()
-  @ApiHeader({ name: "Idempotency-Key", required: true })
-  create(
-    @Body() body: CreateOrderDto,
-    @Headers("idempotency-key") key: string,
+  @Get(":id/reorder") reorder(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
   ) {
-    return this.orders.create(body, key);
+    return this.orders.reorder(user, id);
+  }
+  @Get("organization/:organizationId") forOrganization(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("organizationId") organizationId: string,
+  ) {
+    return this.orders.forOrganization(user, organizationId);
   }
   @Post("trade")
   @ApiHeader({ name: "Idempotency-Key", required: true })

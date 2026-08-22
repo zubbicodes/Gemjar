@@ -1,9 +1,10 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { Product } from "@/lib/catalogue";
 import { csrfHeaders } from "@/lib/csrf";
+import { indexedDbStorage } from "@/lib/indexed-db-storage";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4100/api/v1";
@@ -41,6 +42,7 @@ type CartState = {
   hydrate: () => Promise<void>;
   sync: () => Promise<void>;
   mergeAfterLogin: () => Promise<void>;
+  resetAfterLogout: () => void;
 };
 
 function mapItems(body: ServerCart): CartItem[] {
@@ -232,9 +234,18 @@ export const useCartStore = create<CartState>()(
           set({ offline: true });
         }
       },
+      resetAfterLogout: () =>
+        set({
+          items: [],
+          cartToken: undefined,
+          accountMode: false,
+          hydrated: false,
+          offline: false,
+        }),
     }),
     {
       name: "gemjar-cart-v1",
+      storage: createJSONStorage(() => indexedDbStorage),
       partialize: (state) => ({
         items: state.items,
         cartToken: state.cartToken,

@@ -2,6 +2,9 @@ import { PortalShell } from "@/components/portal-shell";
 import { WorkspaceSection } from "@/components/workspace-section";
 import { SecurityManager } from "@/components/security-manager";
 import { ConsumerOrderHistory } from "@/components/consumer-order-history";
+import { AccountProfile } from "@/components/account-profile";
+import { AccountFavourites } from "@/components/account-favourites";
+import { NotificationCentre } from "@/components/notification-centre";
 
 export default async function AccountSection({
   params,
@@ -22,6 +25,12 @@ export default async function AccountSection({
         <SecurityManager />
       ) : current === "orders" ? (
         <ConsumerOrderHistory />
+      ) : current === "profile" ? (
+        <AccountProfile />
+      ) : current === "favourites" ? (
+        <AccountFavourites />
+      ) : current === "notifications" ? (
+        <NotificationCentre />
       ) : (
         <WorkspaceSection section={current} />
       )}

@@ -4,19 +4,26 @@ import { AccountsService } from "../accounts/accounts.service";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { CatalogueService } from "../catalogue/catalogue.service";
 import { PrismaService } from "../database/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 
 export type QuoteRequest = { channel: "B2C" | "B2B" | "SALES_AGENT"; organizationId?: string; items: Array<{ variantId: string; quantity: number }> };
 
 @Injectable()
 export class PricingService {
-  constructor(private readonly catalogue: CatalogueService, private readonly prisma: PrismaService, private readonly accounts: AccountsService) {}
+  constructor(
+    private readonly catalogue: CatalogueService,
+    private readonly prisma: PrismaService,
+    private readonly accounts: AccountsService,
+    private readonly settings: SettingsService,
+  ) {}
 
   async quote(request: QuoteRequest, actor?: AuthenticatedUser) {
     if (!request.items.length) throw new BadRequestException("At least one item is required");
+    const settings = await this.settings.commerce();
     const isTrade = request.channel !== "B2C";
     if (isTrade) {
       if (!actor || !request.organizationId) throw new ForbiddenException("Authenticated organization context is required for trade pricing");
-      await this.accounts.assertCanAccess(actor, request.organizationId);
+      await this.accounts.assertApprovedAccess(actor, request.organizationId);
     }
     const lines = await Promise.all(request.items.map(async ({ variantId, quantity }) => {
       const variant = await this.catalogue.findVariant(variantId);
@@ -41,7 +48,7 @@ export class PricingService {
     const subtotal = lines.reduce((sum, line) => sum + line.net.amount, 0);
     const vat = lines.reduce((sum, line) => sum + line.vat.amount, 0);
     const total = lines.reduce((sum, line) => sum + line.gross.amount, 0);
-    const stale = lines.some((line) => Date.now() - new Date(line.stockCapturedAt).getTime() > 15 * 60_000 || line.validation.code === "UNAVAILABLE");
+    const stale = lines.some((line) => Date.now() - new Date(line.stockCapturedAt).getTime() > settings.staleStockMinutes * 60_000 || line.validation.code === "UNAVAILABLE");
     return { lines: lines.map(({ stockCapturedAt: _, ...line }) => line), subtotal: { amount: subtotal, currency: "GBP" as const }, vat: { amount: vat, currency: "GBP" as const }, total: { amount: total, currency: "GBP" as const }, stockConfidence: stale ? "PENDING_CONFIRMATION" as const : "LIVE" as const, quotedAt: new Date().toISOString() };
   }
 

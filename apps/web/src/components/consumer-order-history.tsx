@@ -10,6 +10,10 @@ import {
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/utils";
+import { CustomerRequestActions } from "@/components/service-requests";
+import { Button } from "@/components/ui/button";
+import { useCartStore } from "@/stores/cart";
+import { useRouter } from "next/navigation";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4100/api/v1";
@@ -23,6 +27,7 @@ type Order = {
   currency: string;
   deliveryMethodName?: string;
   createdAt: string;
+  invoice?: { id: string; number: string } | null;
   items: Array<{
     id: string;
     nameSnapshot: string;
@@ -48,6 +53,28 @@ export function ConsumerOrderHistory() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const cart = useCartStore();
+  const router = useRouter();
+  async function reorder(orderId: string) {
+    setError("");
+    try {
+      const response = await fetch(`${API_URL}/orders/${orderId}/reorder`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || "Unable to reorder");
+      cart.clear();
+      for (const item of body.items) {
+        cart.add(item.product);
+        cart.setQuantity(item.product.id, item.quantity);
+      }
+      await cart.sync();
+      router.push("/bag");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to reorder");
+    }
+  }
   useEffect(() => {
     void fetch(`${API_URL}/orders/mine`, {
       credentials: "include",
@@ -119,6 +146,21 @@ export function ConsumerOrderHistory() {
                 · {order.deliveryMethodName || "Tracked delivery"}
               </p>
             </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void reorder(order.id)}
+            >
+              Buy again
+            </Button>
+            {order.invoice && (
+              <a
+                className="text-xs font-bold text-forest underline"
+                href={`${API_URL}/invoices/${order.invoice.id}/document`}
+              >
+                Download invoice {order.invoice.number}
+              </a>
+            )}
             <p className="font-display text-3xl font-semibold tabular-nums">
               {formatMoney(order.totalMinor, order.currency)}
             </p>
@@ -184,6 +226,14 @@ export function ConsumerOrderHistory() {
                 </p>
               )}
             </div>
+          </div>
+          <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+            <CustomerRequestActions
+              orderId={order.id}
+              status={order.status}
+              fulfilmentStatus={order.fulfilmentStatus}
+              items={order.items}
+            />
           </div>
         </article>
       ))}

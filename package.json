@@ -9,6 +9,7 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "test:load": "node scripts/smoke-load.mjs",
     "format": "prettier --write .",
     "db:generate": "pnpm --filter @gemjar/database generate",
     "db:migrate": "pnpm --filter @gemjar/database migrate",

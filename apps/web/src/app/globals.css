@@ -45,7 +45,7 @@ textarea {
 
 @layer components {
   .eyebrow {
-    @apply text-[10px] font-bold uppercase tracking-[0.23em] text-forest/60;
+    @apply text-[10px] font-bold uppercase tracking-[0.23em] text-forest;
   }
   .nav-link {
     @apply text-xs font-semibold tracking-[0.02em] text-ink/70 transition hover:text-forest;
@@ -67,8 +67,33 @@ textarea {
     overflow-wrap: anywhere;
   }
   .portal-label {
-    @apply text-[10px] font-bold uppercase tracking-[0.18em] text-white/45;
+    @apply text-[10px] font-bold uppercase tracking-[0.18em] text-white/70;
   }
+  .portal-shell,
+  .portal-shell .font-display {
+    font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+html[data-portal-theme="dark"] .portal-shell {
+  --ink: 236 241 237;
+  --forest: 120 205 177;
+  color-scheme: dark;
+  background: #111915 !important;
+  color: rgb(var(--ink));
+}
+html[data-portal-theme="dark"] .portal-shell header,
+html[data-portal-theme="dark"] .portal-shell > div > nav,
+html[data-portal-theme="dark"] .portal-shell .surface,
+html[data-portal-theme="dark"] .portal-shell .bg-white,
+html[data-portal-theme="dark"] .portal-shell .bg-white\/60,
+html[data-portal-theme="dark"] .portal-shell .bg-white\/70 {
+  background-color: rgba(26, 39, 33, 0.96) !important;
+}
+html[data-portal-theme="dark"] .portal-shell .field {
+  background-color: rgba(9, 17, 13, 0.72);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 @media (prefers-reduced-motion: reduce) {

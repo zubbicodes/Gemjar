@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common";
+import { ConflictException, NotFoundException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import { PaymentsService } from "./payments.service";
 
@@ -124,12 +124,14 @@ function createService() {
     verifyStripeWebhook: vi.fn(),
   };
   const audit = { record: vi.fn() };
+  const orders = { createTradePaymentDraft: vi.fn().mockResolvedValue(order) };
   return {
     payments: new PaymentsService(
       prisma as never,
       pricing as never,
       gateway as never,
       audit as never,
+      orders as never,
     ),
     prisma,
     pricing,
@@ -138,6 +140,7 @@ function createService() {
     order,
     payment,
     tx,
+    orders,
   };
 }
 
@@ -201,7 +204,36 @@ describe("PaymentsService", () => {
         }),
       }),
     );
-    expect(tx.outboxEvent.create).toHaveBeenCalledTimes(2);
+    expect(tx.outboxEvent.create).toHaveBeenCalledTimes(3);
+    expect(tx.outboxEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ type: "ORDER_SUBMIT" }),
+      }),
+    );
+  });
+
+  it("starts an idempotent trade card checkout through the central order model", async () => {
+    const { payments, orders, gateway } = createService();
+    const result = await payments.startTradeCheckout(
+      { id: "buyer-1" } as never,
+      {
+        organizationId: "org-1",
+        email: input.email,
+        deliveryAddress: input.deliveryAddress,
+        items: input.items,
+      },
+      "trade-checkout-key-123456",
+    );
+    expect(orders.createTradePaymentDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "buyer-1" }),
+      expect.objectContaining({ organizationId: "org-1" }),
+      "trade-checkout-key-123456",
+      "mock",
+    );
+    expect(gateway.createIntent).toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: "order-1" }),
+    );
+    expect(result).toMatchObject({ orderId: "order-1", provider: "mock" });
   });
 
   it("acknowledges a repeated webhook without changing state again", async () => {
@@ -216,5 +248,23 @@ describe("PaymentsService", () => {
       payments.handleStripeWebhook(Buffer.from("signed"), "signature"),
     ).resolves.toEqual({ received: true, duplicate: true });
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("replays an idempotent refund without calling Stripe twice", async () => {
+    const { payments, prisma, gateway } = createService();
+    const refund = { id: "refund-1", idempotencyKey: "refund-key-123456" };
+    (prisma as unknown as { refund: { findUnique: ReturnType<typeof vi.fn> } }).refund = { findUnique: vi.fn().mockResolvedValue(refund) };
+    gateway.refund = vi.fn();
+    await expect(payments.refund({ id: "admin-1" } as never, { paymentId: "payment-1", amountMinor: 1000, reason: "Returned item", idempotencyKey: "refund-key-123456" })).resolves.toBe(refund);
+    expect(gateway.refund).not.toHaveBeenCalled();
+  });
+
+  it("rejects a refund above remaining paid amount", async () => {
+    const { payments, prisma, gateway } = createService();
+    (prisma as unknown as { refund: { findUnique: ReturnType<typeof vi.fn> } }).refund = { findUnique: vi.fn().mockResolvedValue(null) };
+    prisma.payment.findUnique.mockResolvedValue({ id: "payment-1", externalId: "mock_pi_payment-1", status: "PAID", amountMinor: 1000, refunds: [{ amountMinor: 400 }], order: { id: "order-1" } });
+    gateway.refund = vi.fn();
+    await expect(payments.refund({ id: "admin-1" } as never, { paymentId: "payment-1", amountMinor: 700, reason: "Returned item", idempotencyKey: "refund-key-654321" })).rejects.toBeInstanceOf(ConflictException);
+    expect(gateway.refund).not.toHaveBeenCalled();
   });
 });

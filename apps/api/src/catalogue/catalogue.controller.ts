@@ -7,6 +7,11 @@ import { Public } from "../auth/auth.decorators";
 @Controller("products")
 export class CatalogueController {
   constructor(private readonly catalogue: CatalogueService) {}
-  @Public() @Get() async list(@Query("q") query?: string) { const data = await this.catalogue.list(query); return { data, page: 1, pageSize: data.length, total: data.length }; }
-  @Public() @Get(":slug") one(@Param("slug") slug: string) { return this.catalogue.findBySlug(slug); }
+  @Public() @Get() async list(@Query("q") query?: string) {
+    const data = await this.catalogue.list(query);
+    return { data, page: 1, pageSize: data.length, total: data.length };
+  }
+  @Public() @Get(":slug") one(@Param("slug") slug: string) {
+    return this.catalogue.findBySlug(slug);
+  }
 }

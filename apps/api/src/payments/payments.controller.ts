@@ -16,6 +16,7 @@ import {
   IsIn,
   IsInt,
   IsOptional,
+  IsObject,
   IsString,
   Matches,
   MaxLength,
@@ -24,7 +25,11 @@ import {
   ValidateNested,
 } from "class-validator";
 import type { Request } from "express";
-import { OptionalAuth, Public } from "../auth/auth.decorators";
+import {
+  OptionalAuth,
+  Public,
+  RequirePermissions,
+} from "../auth/auth.decorators";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { PaymentsService } from "./payments.service";
@@ -60,8 +65,25 @@ class CheckoutDto {
   @Type(() => CheckoutItemDto)
   items: CheckoutItemDto[];
 }
+class TradeCheckoutDto {
+  @IsString() organizationId: string;
+  @IsEmail() email: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CheckoutItemDto)
+  items: CheckoutItemDto[];
+  @IsObject() deliveryAddress: Record<string, string>;
+  @IsOptional() @IsString() @MaxLength(1000) notes?: string;
+  @IsOptional() @IsString() @MaxLength(200) purchaseOrder?: string;
+}
 class ConfirmationDto {
   @IsString() @MinLength(16) confirmationToken: string;
+}
+class RefundDto {
+  @IsString() paymentId: string;
+  @IsInt() @Min(1) amountMinor: number;
+  @IsString() @MinLength(3) @MaxLength(300) reason: string;
+  @IsString() @MinLength(16) idempotencyKey: string;
 }
 
 @ApiTags("payments and checkout")
@@ -82,6 +104,16 @@ export class PaymentsController {
     @Headers("idempotency-key") key: string,
   ) {
     return this.payments.startCheckout(user, body, key);
+  }
+
+  @Post("trade-checkout")
+  @ApiHeader({ name: "Idempotency-Key", required: true })
+  tradeCheckout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: TradeCheckoutDto,
+    @Headers("idempotency-key") key: string,
+  ) {
+    return this.payments.startTradeCheckout(user, body, key);
   }
 
   @Public()
@@ -109,5 +141,11 @@ export class PaymentsController {
     @Headers("x-confirmation-token") token: string,
   ) {
     return this.payments.confirmation(orderId, token);
+  }
+  @RequirePermissions("finance:refund") @Post("refunds") refund(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: RefundDto,
+  ) {
+    return this.payments.refund(user, body);
   }
 }

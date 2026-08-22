@@ -7,6 +7,12 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   reporter: "list",
+  webServer: {
+    command: "pnpm dev",
+    url: "http://localhost:3000",
+    reuseExistingServer: true,
+    timeout: 120_000,
+  },
   use: {
     baseURL: "http://localhost:3000",
     channel: "chrome",

@@ -11,36 +11,39 @@ import {
 import { SiteHeader } from "@/components/site-header";
 import { ProductCard } from "@/components/product-card";
 import { buttonVariants } from "@/components/ui/button";
-import { getProducts } from "@/lib/api";
+import { getProducts, getStorefrontContent } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default async function HomePage() {
-  const products = await getProducts();
+  const [products, content] = await Promise.all([
+    getProducts(),
+    getStorefrontContent(),
+  ]);
   return (
     <main>
       <SiteHeader />
       <section className="relative min-h-[720px] overflow-hidden bg-[#0c1e19] text-white lg:min-h-[calc(100vh-106px)]">
         <Image
-          src="/images/gemjar-hero.png"
+          src={content.heroImageUrl}
           alt="Gold jewellery and emeralds arranged on sculptural stone plinths"
           fill
           priority
           className="object-cover object-[62%_center] opacity-90"
           sizes="100vw"
+          unoptimized={content.heroImageUrl.startsWith("http")}
         />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,18,15,.94)_0%,rgba(6,18,15,.82)_34%,rgba(6,18,15,.18)_70%,rgba(6,18,15,.12)_100%)]" />
         <div className="relative mx-auto flex min-h-[720px] max-w-[1440px] items-end px-5 pb-16 pt-32 lg:min-h-[calc(100vh-106px)] lg:items-center lg:px-10 lg:pb-20 lg:pt-20">
           <div className="max-w-[670px] animate-fade-up">
             <div className="mb-8 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.26em] text-white/62">
-              <span className="h-px w-10 bg-gold" /> The autumn atelier
+              <span className="h-px w-10 bg-gold" /> {content.eyebrow}
             </div>
             <h1 className="font-display text-[64px] font-medium leading-[0.92] tracking-[-0.045em] sm:text-[82px] lg:text-[102px]">
-              Objects of quiet{" "}
-              <em className="font-medium text-gold">distinction.</em>
+              {content.headline}{" "}
+              <em className="font-medium text-gold">{content.emphasis}</em>
             </h1>
             <p className="mt-8 max-w-lg text-[15px] leading-7 text-white/68 sm:text-base">
-              Considered jewellery for modern rituals. Precious materials,
-              sculptural forms, and pieces made to remain.
+              {content.introduction}
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
               <Link
@@ -122,11 +125,10 @@ export default async function HomePage() {
               For independent retailers
             </p>
             <h2 className="mt-5 max-w-xl font-display text-5xl font-medium leading-[.95] tracking-[-0.035em] sm:text-6xl">
-              A better way to buy, built around your business.
+              {content.tradeHeadline}
             </h2>
             <p className="mt-7 max-w-lg text-sm leading-7 text-white/62">
-              Customer-specific pricing, intelligent reordering and a catalogue
-              curated for your store—all in one calm workspace.
+              {content.tradeIntroduction}
             </p>
             <Link
               href="/trade"
@@ -173,7 +175,7 @@ export default async function HomePage() {
         <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-10 border-b border-white/10 pb-12 lg:flex-row">
           <div>
             <p className="font-display text-4xl font-semibold">Gemjar</p>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-white/45">
+            <p className="mt-4 max-w-sm text-sm leading-6 text-white/70">
               Objects with character. Commerce with care.
             </p>
           </div>
@@ -186,7 +188,7 @@ export default async function HomePage() {
             <Link href="/contact">Contact</Link>
           </div>
         </div>
-        <div className="mx-auto mt-6 flex max-w-[1440px] flex-col gap-2 text-[10px] uppercase tracking-[0.14em] text-white/30 sm:flex-row sm:justify-between">
+        <div className="mx-auto mt-6 flex max-w-[1440px] flex-col gap-2 text-[10px] uppercase tracking-[0.14em] text-white/70 sm:flex-row sm:justify-between">
           <span>© 2026 Gemjar. All rights reserved.</span>
           <span>United Kingdom · GBP</span>
         </div>

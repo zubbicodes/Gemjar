@@ -6,8 +6,9 @@ export function middleware(request: NextRequest) {
   const isProtected = protectedRoots.some(
     (root) => request.nextUrl.pathname === root || request.nextUrl.pathname.startsWith(`${root}/`),
   );
+  const isPublicTradeApplication = request.nextUrl.pathname === "/trade";
 
-  if (!isProtected || request.cookies.has("gj_access")) {
+  if (!isProtected || isPublicTradeApplication || request.cookies.has("gj_access")) {
     return NextResponse.next();
   }
 

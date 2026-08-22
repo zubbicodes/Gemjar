@@ -259,9 +259,14 @@ export function LoginForm() {
         <ArrowRight className="size-4" />
       </Button>
       <p className="mt-4 text-center text-[10px] leading-4 text-ink/38">
-        Demo credentials are pre-filled. Privileged accounts require
-        authenticator setup on first sign-in.
+        Demonstration credentials are pre-filled. If this environment enforces
+        multi-factor authentication, privileged accounts are asked to enrol an
+        authenticator on first sign-in.
       </p>
+      <div className="mt-4 flex justify-center gap-4 text-xs font-bold text-forest">
+        <a href="/register">Create account</a>
+        <a href="/forgot-password">Forgot password?</a>
+      </div>
     </form>
   );
 }

@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { Heart, Menu, Search, ShoppingBag, UserRound } from "lucide-react";
+import { useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { useCartStore } from "@/stores/cart";
 
 export function SiteHeader() {
+  const [menuOpen, setMenuOpen] = useState(false);
   const count = useCartStore((state) => state.items.reduce((sum, item) => sum + item.quantity, 0));
   return (
     <header className="sticky top-0 z-50 border-b border-ink/10 bg-paper/90 backdrop-blur-xl">
@@ -13,11 +15,20 @@ export function SiteHeader() {
         Complimentary UK delivery on orders over £150
       </div>
       <div className="mx-auto flex h-[74px] max-w-[1440px] items-center justify-between px-5 lg:px-10">
-        <button className="lg:hidden" aria-label="Open navigation"><Menu className="size-5" /></button>
+        <button
+          type="button"
+          className="icon-link lg:hidden"
+          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <Menu className="size-5" />
+        </button>
         <BrandMark />
         <nav className="hidden items-center gap-9 lg:flex" aria-label="Main navigation">
           <Link className="nav-link" href="/shop">New arrivals</Link>
-          <Link className="nav-link" href="/shop?collection=atelier">Collections</Link>
+          <Link className="nav-link" href="/shop">Collections</Link>
           <Link className="nav-link" href="/shop?category=rings">Rings</Link>
           <Link className="nav-link" href="/shop?category=necklaces">Necklaces</Link>
           <Link className="nav-link" href="/trade">Trade</Link>
@@ -32,6 +43,31 @@ export function SiteHeader() {
           </Link>
         </div>
       </div>
+      {menuOpen && (
+        <nav
+          id="mobile-navigation"
+          aria-label="Mobile navigation"
+          className="grid border-t border-ink/10 bg-paper px-5 py-3 lg:hidden"
+        >
+          {([
+            ["Shop", "/shop"],
+            ["Rings", "/shop?category=rings"],
+            ["Necklaces", "/shop?category=necklaces"],
+            ["Trade", "/trade"],
+            ["My account", "/account"],
+            ["Favourites", "/account/favourites"],
+          ] as const).map(([label, href]) => (
+            <Link
+              key={label}
+              href={href}
+              className="border-b border-ink/[.06] py-3 text-sm font-semibold last:border-0"
+              onClick={() => setMenuOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

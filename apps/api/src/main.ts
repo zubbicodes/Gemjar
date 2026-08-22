@@ -18,8 +18,22 @@ async function bootstrap() {
   app.use(helmet());
   app.use(cookieParser(process.env.COOKIE_SECRET));
   app.use((request: any, response: any, next: () => void) => {
+    const started = Date.now();
     request.correlationId = request.headers["x-correlation-id"] || randomUUID();
     response.setHeader("x-correlation-id", request.correlationId);
+    response.on("finish", () =>
+      console.info(
+        JSON.stringify({
+          level: "info",
+          event: "http_request",
+          method: request.method,
+          path: request.originalUrl,
+          status: response.statusCode,
+          durationMs: Date.now() - started,
+          correlationId: request.correlationId,
+        }),
+      ),
+    );
     next();
   });
   app.enableCors({
@@ -44,6 +58,7 @@ async function bootstrap() {
       .build(),
   );
   SwaggerModule.setup("docs", app, document);
+  app.flushLogs();
   await app.listen(Number(process.env.PORT || 4000));
 }
 

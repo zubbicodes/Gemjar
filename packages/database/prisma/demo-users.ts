@@ -30,6 +30,11 @@ const ADMIN_PERMISSIONS = [
   "integrations:retry",
   "audit:read",
   "settings:update",
+  "imports:create",
+  "imports:commit",
+  "exports:create",
+  "roles:read",
+  "roles:update",
 ];
 
 export const TRADE_ACCOUNT_NUMBER = "GJ-TRADE-001";

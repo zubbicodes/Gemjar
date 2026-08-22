@@ -3,13 +3,16 @@
 # to the `web` service on port 3000.
 #
 # Seeding, applied by the `migrate` service on every deployment:
-#   SEED_DEMO_USERS=true (default) creates or refreshes the demonstration
-#     accounts only — admin@gemjar.test, agent@gemjar.test, buyer@gemjar.test,
-#     customer@gemjar.test — all using DEMO_USER_PASSWORD. Catalogue, pricing,
-#     and order data are left untouched, so demonstration edits survive a
-#     redeploy. Their passwords are reset to DEMO_USER_PASSWORD each deployment.
-#   SEED_DATABASE=true additionally loads the demonstration catalogue, trade
-#     pricing, and delivery methods, resetting North & Finch pricing rows.
+#   SEED_DEMO_DATA=true (default) runs the non-destructive demonstration seed:
+#     the four *@gemjar.test accounts (password from DEMO_USER_PASSWORD), the
+#     catalogue, delivery methods, and operational history — orders across all
+#     three channels, a live partial shipment, invoices, a return request, a
+#     pending trade application, and integration job history. Everything upserts
+#     or skips rows that already exist, so catalogue edits, customer pricing, and
+#     orders created during a demonstration survive a redeploy. Account passwords
+#     are reset to DEMO_USER_PASSWORD on every deployment.
+#   SEED_DATABASE=true additionally RESETS North & Finch trade pricing to the
+#     reference tiers. Leave it false once anybody has set pricing deliberately.
 #   Set both to false before the platform carries real customer data.
 
 x-gemjar-image: &gemjar-image
@@ -76,12 +79,15 @@ x-api-environment: &api-environment
   STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
   MINTSOFT_BASE_URL: ${MINTSOFT_BASE_URL:-}
   MINTSOFT_API_KEY: ${MINTSOFT_API_KEY:-}
+  MINTSOFT_STOCK_PATH: ${MINTSOFT_STOCK_PATH:-}
+  MINTSOFT_ORDER_PATH: ${MINTSOFT_ORDER_PATH:-}
   SAGE_PROVIDER: ${SAGE_PROVIDER:-disabled}
   AWS_REGION: ${AWS_REGION:-eu-west-2}
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
   AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
   S3_BUCKET: ${S3_BUCKET:-}
   SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
+  SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
 
 services:
   postgres:
@@ -115,7 +121,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" ping | grep PONG']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -128,7 +134,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-gemjar}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-gemjar}
       SEED_DATABASE: ${SEED_DATABASE:-false}
-      SEED_DEMO_USERS: ${SEED_DEMO_USERS:-true}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-GemjarDemo!2026}
     command:
       - /bin/sh
@@ -137,8 +143,8 @@ services:
         pnpm --filter @gemjar/database exec prisma migrate deploy
         if [ "$${SEED_DATABASE}" = "true" ]; then
           pnpm --filter @gemjar/database exec prisma db seed
-        elif [ "$${SEED_DEMO_USERS}" = "true" ]; then
-          pnpm --filter @gemjar/database run seed:users
+        elif [ "$${SEED_DEMO_DATA}" = "true" ]; then
+          pnpm --filter @gemjar/database run seed:demo
         fi
     depends_on:
       postgres:
@@ -165,7 +171,7 @@ services:
         - CMD
         - node
         - -e
-        - fetch('http://127.0.0.1:4000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+        - fetch('http://127.0.0.1:4000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
       interval: 15s
       timeout: 5s
       retries: 5
@@ -180,10 +186,18 @@ services:
       NODE_ENV: production
       TZ: ${TZ:-Europe/London}
       REDIS_URL: redis://:${SERVICE_PASSWORD_REDIS}@redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gemjar}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/${POSTGRES_DB:-gemjar}
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
       SAGE_PROVIDER: ${SAGE_PROVIDER:-disabled}
       MINTSOFT_BASE_URL: ${MINTSOFT_BASE_URL:-}
       MINTSOFT_API_KEY: ${MINTSOFT_API_KEY:-}
+      MINTSOFT_STOCK_PATH: ${MINTSOFT_STOCK_PATH:-}
+      MINTSOFT_ORDER_PATH: ${MINTSOFT_ORDER_PATH:-}
+      AWS_REGION: ${AWS_REGION:-eu-west-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      SES_FROM_EMAIL: ${SES_FROM_EMAIL:-}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
     command: ["node", "apps/worker/dist/main.js"]
     depends_on:
       redis:

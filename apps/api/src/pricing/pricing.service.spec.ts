@@ -10,11 +10,20 @@ const variants = {
 };
 const catalogue = { findVariant: async (id: string) => variants[id as keyof typeof variants] } as unknown as CatalogueService;
 const actor: AuthenticatedUser = { id: "buyer", email: "buyer@test.local", firstName: "Test", lastName: "Buyer", kind: "B2B", permissions: [], sessionId: "session" };
-const accounts = { assertCanAccess: vi.fn().mockResolvedValue({ id: "org_demo", status: "APPROVED" }) };
+const accounts = {
+  assertApprovedAccess: vi
+    .fn()
+    .mockResolvedValue({ id: "org_demo", status: "APPROVED" }),
+};
 
 function createService(customerPrice: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue(null)) {
   const prisma = { customerPrice: { findFirst: customerPrice }, organization: { findUnique: vi.fn().mockResolvedValue({ catalogueRestricted: false }) }, organizationProductAccess: { findUnique: vi.fn() } };
-  return new PricingService(catalogue, prisma as never, accounts as never);
+  return new PricingService(
+    catalogue,
+    prisma as never,
+    accounts as never,
+    { commerce: vi.fn().mockResolvedValue({ staleStockMinutes: 15 }) } as never,
+  );
 }
 
 describe("PricingService", () => {

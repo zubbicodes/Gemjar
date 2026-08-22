@@ -26,6 +26,10 @@ for (const width of [320, 375, 414, 768]) {
 test("guest checkout reaches verified mock payment confirmation", async ({
   page,
 }) => {
+  test.skip(
+    process.env.E2E_FULL_STACK !== "true",
+    "Requires PostgreSQL/API full stack",
+  );
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto("/shop/verdant-signet");
   await page

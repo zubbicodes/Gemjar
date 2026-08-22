@@ -10,6 +10,10 @@ import { AuditService } from "../audit/audit.service";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { PrismaService } from "../database/prisma.service";
 import { PricingService } from "../pricing/pricing.service";
+import {
+  OrdersService,
+  type TradeOrderInput,
+} from "../orders/orders.service";
 import { PaymentProviderGateway } from "./payment-provider";
 
 type CheckoutInput = {
@@ -37,7 +41,55 @@ export class PaymentsService {
     private readonly pricing: PricingService,
     private readonly gateway: PaymentProviderGateway,
     private readonly audit: AuditService,
+    private readonly orders: OrdersService,
   ) {}
+
+  async startTradeCheckout(
+    actor: AuthenticatedUser,
+    input: TradeOrderInput,
+    idempotencyKey: string,
+  ) {
+    if (!idempotencyKey || idempotencyKey.length < 16)
+      throw new ConflictException("A valid Idempotency-Key header is required");
+    const order = await this.orders.createTradePaymentDraft(
+      actor,
+      input,
+      idempotencyKey,
+      this.gateway.activeProvider,
+    );
+    const payment = order.payments[0];
+    if (!payment)
+      throw new ConflictException("Trade checkout has no payment record");
+    const intent = payment.externalId
+      ? await this.gateway.resumeIntent(payment.externalId)
+      : await this.gateway.createIntent({
+          paymentId: payment.id,
+          orderId: order.id,
+          orderNumber: order.number,
+          amountMinor: payment.amountMinor,
+          currency: order.currency,
+          idempotencyKey: payment.idempotencyKey,
+          email: order.email,
+        });
+    if (!payment.externalId)
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: { provider: intent.provider, externalId: intent.externalId },
+      });
+    await this.audit.record({
+      actorId: actor.id,
+      event: "TRADE_PAYMENT_INTENT_CREATED",
+      entityType: "Payment",
+      entityId: payment.id,
+      after: { orderId: order.id, amountMinor: payment.amountMinor },
+    });
+    return this.checkoutPayload(
+      order,
+      payment.id,
+      intent,
+      idempotencyKey,
+    );
+  }
 
   async deliveryMethods() {
     const data = await this.prisma.deliveryMethod.findMany({
@@ -295,7 +347,7 @@ export class PaymentsService {
         data: {
           aggregate: "Order",
           aggregateId: order.id,
-          type: "ORDER_READY_FOR_FULFILMENT",
+          type: "ORDER_SUBMIT",
           payload: {
             orderId: order.id,
             number: order.number,
@@ -313,6 +365,60 @@ export class PaymentsService {
           processedAt: new Date(),
         },
       });
+      if (order.userId)
+        await transaction.notification.create({
+          data: {
+            userId: order.userId,
+            kind: "ORDER",
+            title: `Order ${order.number} submitted`,
+            message: order.stockConfirmationPending
+              ? "Payment confirmed; stock confirmation is pending."
+              : "Payment confirmed; your order is ready for processing.",
+            link:
+              order.source === Channel.B2C
+                ? "/account/orders"
+                : "/trade/orders",
+          },
+        });
+      await transaction.outboxEvent.create({
+        data: {
+          aggregate: "Order",
+          aggregateId: order.id,
+          type: "NOTIFICATION_EMAIL",
+          payload: {
+            email: order.email,
+            subject: `Gemjar order ${order.number}`,
+            message: order.stockConfirmationPending
+              ? "Your payment was confirmed and stock confirmation is pending."
+              : "Your payment was confirmed and your order is ready for processing.",
+          },
+        },
+      });
+      if (order.stockConfirmationPending) {
+        const administrators = await transaction.user.findMany({
+          where: { kind: UserKind.ADMIN },
+          select: { id: true },
+        });
+        if (administrators.length)
+          await transaction.notification.createMany({
+            data: administrators.map(({ id }) => ({
+              userId: id,
+              kind: "INTEGRATION",
+              title: `Order ${order.number} needs stock confirmation`,
+              message:
+                "Payment is confirmed, but Mintsoft stock needs manual review.",
+              link: "/admin/orders",
+            })),
+          });
+        await transaction.outboxEvent.create({
+          data: {
+            aggregate: "Order",
+            aggregateId: order.id,
+            type: "STOCK_SYNC_REQUESTED",
+            payload: { orderId: order.id, provider: "MINTSOFT" },
+          },
+        });
+      }
       return order;
     });
     await this.audit.record({
@@ -366,6 +472,89 @@ export class PaymentsService {
         },
       }),
     ]);
+  }
+
+  async refund(
+    actor: AuthenticatedUser,
+    input: {
+      paymentId: string;
+      amountMinor: number;
+      reason: string;
+      idempotencyKey: string;
+    },
+  ) {
+    const replay = await this.prisma.refund.findUnique({
+      where: { idempotencyKey: input.idempotencyKey },
+    });
+    if (replay) return replay;
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: input.paymentId },
+      include: { refunds: true, order: true },
+    });
+    if (!payment || !payment.externalId)
+      throw new NotFoundException("Paid payment was not found");
+    if (
+      payment.status !== PaymentStatus.PAID &&
+      payment.status !== PaymentStatus.PARTIALLY_REFUNDED
+    )
+      throw new ConflictException("Only paid payments can be refunded");
+    const refunded = payment.refunds.reduce(
+      (sum, item) => sum + item.amountMinor,
+      0,
+    );
+    if (input.amountMinor > payment.amountMinor - refunded)
+      throw new ConflictException("Refund exceeds remaining paid amount");
+    const provider = await this.gateway.refund({
+      paymentExternalId: payment.externalId,
+      amountMinor: input.amountMinor,
+      idempotencyKey: input.idempotencyKey,
+    });
+    const totalRefunded = refunded + input.amountMinor;
+    const status =
+      totalRefunded === payment.amountMinor
+        ? PaymentStatus.REFUNDED
+        : PaymentStatus.PARTIALLY_REFUNDED;
+    const result = await this.prisma.$transaction(async (transaction) => {
+      const refund = await transaction.refund.create({
+        data: {
+          paymentId: payment.id,
+          externalId: provider.externalId,
+          idempotencyKey: input.idempotencyKey,
+          amountMinor: input.amountMinor,
+          reason: input.reason.trim(),
+        },
+      });
+      await transaction.payment.update({
+        where: { id: payment.id },
+        data: { status },
+      });
+      await transaction.order.update({
+        where: { id: payment.orderId },
+        data: {
+          paymentStatus: status,
+          events: {
+            create: {
+              type: "PAYMENT_REFUNDED",
+              message: `${input.amountMinor === payment.amountMinor ? "Full" : "Partial"} refund issued`,
+              metadata: { refundId: refund.id, amountMinor: input.amountMinor },
+            },
+          },
+        },
+      });
+      return refund;
+    });
+    await this.audit.record({
+      actorId: actor.id,
+      event: "PAYMENT_REFUNDED",
+      entityType: "Refund",
+      entityId: result.id,
+      after: {
+        paymentId: payment.id,
+        amountMinor: input.amountMinor,
+        reason: input.reason,
+      },
+    });
+    return result;
   }
 
   private checkoutPayload(

@@ -10,6 +10,16 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
-  "dependencies": { "bullmq": "^5.58.5", "ioredis": "^5.7.0" },
-  "devDependencies": { "@types/node": "^22.18.0", "tsx": "^4.20.5", "typescript": "^5.9.2", "vitest": "^3.2.4" }
+  "dependencies": {
+    "@prisma/client": "^6.15.0",
+    "@aws-sdk/client-sesv2": "^3.883.0",
+    "bullmq": "^5.58.5",
+    "ioredis": "^5.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
 }

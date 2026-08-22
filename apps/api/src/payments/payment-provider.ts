@@ -118,6 +118,24 @@ export class PaymentProviderGateway {
     return { id: event.id, type: "ignored" };
   }
 
+  async refund(input: {
+    paymentExternalId: string;
+    amountMinor: number;
+    idempotencyKey: string;
+  }) {
+    if (input.paymentExternalId.startsWith("mock_pi_"))
+      return { externalId: `mock_refund_${input.idempotencyKey}` };
+    const refund = await this.stripe().refunds.create(
+      {
+        payment_intent: input.paymentExternalId,
+        amount: input.amountMinor,
+        reason: "requested_by_customer",
+      },
+      { idempotencyKey: input.idempotencyKey },
+    );
+    return { externalId: refund.id };
+  }
+
   private stripe() {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) throw new ServiceUnavailableException("Stripe is not configured");

@@ -9,6 +9,7 @@ export type Product = {
   price: number;
   previousPrice?: number;
   image: string;
+  images?: Array<{ url: string; alt: string }>;
   accent: string;
   availability: "In stock" | "Low stock" | "Made to order";
   material: string;
