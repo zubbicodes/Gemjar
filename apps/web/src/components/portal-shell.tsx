@@ -86,7 +86,7 @@ export function PortalShell({
         <div className="shrink-0 overflow-x-auto border-b border-ink/10 bg-white/70 lg:hidden">
           <PortalNav kind={kind} compact />
         </div>
-        <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:flex-1 lg:overflow-y-auto lg:p-8">
+        <main className="p-4 sm:p-6 lg:flex-1 lg:overflow-y-auto lg:p-8">
           <div className="mb-6 flex flex-col gap-4 border-b border-ink/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
             <p className="eyebrow">{labels[kind]}</p>
