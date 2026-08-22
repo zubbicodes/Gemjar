@@ -36,8 +36,8 @@ export function PortalShell({
     admin: [["Add product", "/admin/catalogue", Plus], ["Manage orders", "/admin/orders", ShoppingBag], ["Add customer", "/admin/customers", UsersRound]],
   };
   return (
-    <div className="portal-shell min-h-screen bg-mist/60 lg:grid lg:grid-cols-[224px_minmax(0,1fr)]">
-      <aside className="hidden min-h-screen flex-col border-r border-ink/10 bg-white px-4 py-6 text-ink lg:flex">
+    <div className="portal-shell min-h-screen bg-mist/60 lg:grid lg:h-screen lg:grid-cols-[224px_minmax(0,1fr)] lg:overflow-hidden">
+      <aside className="hidden min-h-screen flex-col border-r border-ink/10 bg-white px-4 py-6 text-ink lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
         <BrandMark />
         <div className="mt-10 px-3">
           <p className="portal-label">Workspace</p>
@@ -57,8 +57,8 @@ export function PortalShell({
           </a>
         </div>
       </aside>
-      <div className="min-w-0">
-        <header className="flex h-[72px] items-center justify-between border-b border-ink/10 bg-white px-5 lg:px-8">
+      <div className="min-w-0 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
+        <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-ink/10 bg-white px-5 lg:px-8">
           <div className="lg:hidden">
             <BrandMark />
           </div>
@@ -83,10 +83,10 @@ export function PortalShell({
             <CurrentUserBadge />
           </div>
         </header>
-        <div className="overflow-x-auto border-b border-ink/10 bg-white/70 lg:hidden">
+        <div className="shrink-0 overflow-x-auto border-b border-ink/10 bg-white/70 lg:hidden">
           <PortalNav kind={kind} compact />
         </div>
-        <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
+        <main className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:flex-1 lg:overflow-y-auto lg:p-8">
           <div className="mb-6 flex flex-col gap-4 border-b border-ink/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
             <p className="eyebrow">{labels[kind]}</p>
