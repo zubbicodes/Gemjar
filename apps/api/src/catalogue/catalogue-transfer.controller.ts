@@ -8,7 +8,7 @@ import {
   Res,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { IsString, MinLength } from "class-validator";
+import { IsString, MaxLength, MinLength } from "class-validator";
 import type { Response } from "express";
 import { RequirePermissions } from "../auth/auth.decorators";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -17,6 +17,10 @@ import { CatalogueTransferService } from "./catalogue-transfer.service";
 
 class StageImportDto {
   @IsString() @MinLength(1) csv: string;
+  @IsString() @MinLength(8) idempotencyKey: string;
+}
+class StageWorkbookDto {
+  @IsString() @MinLength(1) @MaxLength(15000000) base64: string;
   @IsString() @MinLength(8) idempotencyKey: string;
 }
 
@@ -32,6 +36,12 @@ export class CatalogueTransferController {
     @Body() body: StageImportDto,
   ) {
     return this.transfers.stage(body.csv, body.idempotencyKey, user.id);
+  }
+  @RequirePermissions("imports:create") @Post("imports/xlsx") stageWorkbook(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: StageWorkbookDto,
+  ) {
+    return this.transfers.stageWorkbook(body.base64, body.idempotencyKey, user.id);
   }
   @RequirePermissions("imports:commit") @Post("imports/:id/commit") commit(
     @CurrentUser() user: AuthenticatedUser,

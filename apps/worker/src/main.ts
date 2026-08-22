@@ -3,6 +3,7 @@ import {
   JobStatus,
   Prisma,
   PrismaClient,
+  ShipmentStatus,
 } from "@prisma/client";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { Queue, Worker, type Job } from "bullmq";
@@ -223,6 +224,104 @@ async function processIntegration(job: Job<IntegrationJob>) {
         });
       externalId = `INVOICES-${orders.length}`;
     }
+    if (job.data.type === "SHIPMENT_PULL") {
+      let updates: Array<Record<string, unknown>> = [];
+      if (
+        process.env.MINTSOFT_BASE_URL &&
+        process.env.MINTSOFT_API_KEY &&
+        process.env.MINTSOFT_SHIPMENT_PATH
+      ) {
+        updates = responseRows(
+          await mintsoftRequest(process.env.MINTSOFT_SHIPMENT_PATH),
+        );
+      }
+      let applied = 0;
+      for (const update of updates) {
+        const externalOrderId = String(
+          update.OrderId ?? update.OrderID ?? update.orderId ?? "",
+        );
+        const orderNumber = String(
+          update.OrderNumber ?? update.orderNumber ?? "",
+        );
+        const reference = externalOrderId
+          ? await prisma.externalReference.findFirst({
+              where: {
+                provider: "MINTSOFT",
+                entityType: "ORDER",
+                externalId: externalOrderId,
+              },
+            })
+          : null;
+        const order = reference?.orderId
+          ? await prisma.order.findUnique({ where: { id: reference.orderId } })
+          : orderNumber
+            ? await prisma.order.findUnique({ where: { number: orderNumber } })
+            : null;
+        if (!order) continue;
+        const trackingNumber = String(
+          update.TrackingNumber ?? update.trackingNumber ?? "",
+        ) || null;
+        const rawStatus = String(update.Status ?? update.status ?? "PENDING")
+          .toUpperCase()
+          .replaceAll(" ", "_");
+        const status = Object.values(ShipmentStatus).includes(
+          rawStatus as ShipmentStatus,
+        )
+          ? (rawStatus as ShipmentStatus)
+          : ShipmentStatus.PENDING;
+        const existing = await prisma.shipment.findFirst({
+          where: {
+            orderId: order.id,
+            ...(trackingNumber ? { trackingNumber } : {}),
+          },
+          orderBy: { createdAt: "desc" },
+        });
+        const occurredAt = new Date(
+          String(update.OccurredAt ?? update.UpdatedAt ?? new Date().toISOString()),
+        );
+        const shipment = existing
+          ? await prisma.shipment.update({
+              where: { id: existing.id },
+              data: {
+                status,
+                trackingNumber,
+                carrier: String(update.Carrier ?? update.carrier ?? "") || null,
+                dispatchedAt:
+                  status === ShipmentStatus.DISPATCHED ||
+                  status === ShipmentStatus.IN_TRANSIT ||
+                  status === ShipmentStatus.DELIVERED
+                    ? (existing.dispatchedAt ?? occurredAt)
+                    : existing.dispatchedAt,
+                deliveredAt:
+                  status === ShipmentStatus.DELIVERED
+                    ? (existing.deliveredAt ?? occurredAt)
+                    : existing.deliveredAt,
+              },
+            })
+          : await prisma.shipment.create({
+              data: {
+                orderId: order.id,
+                status,
+                trackingNumber,
+                carrier: String(update.Carrier ?? update.carrier ?? "") || null,
+                dispatchedAt:
+                  status === ShipmentStatus.PENDING ? null : occurredAt,
+                deliveredAt:
+                  status === ShipmentStatus.DELIVERED ? occurredAt : null,
+              },
+            });
+        await prisma.trackingEvent.create({
+          data: {
+            shipmentId: shipment.id,
+            status,
+            detail: `Mintsoft shipment ${status.toLowerCase().replaceAll("_", " ")}`,
+            occurredAt,
+          },
+        });
+        applied++;
+      }
+      externalId = `SHIPMENTS-${applied}`;
+    }
     const completedAt = new Date();
     await prisma.$transaction(async (transaction) => {
       await transaction.integrationJob.update({
@@ -425,6 +524,53 @@ async function enqueuePending() {
   }
 }
 
+async function scheduleRecurringJobs() {
+  const schedules: Array<{
+    provider: "MINTSOFT" | "SAGE_50";
+    type: "STOCK_SYNC" | "SHIPMENT_PULL" | "INVOICE_PULL";
+    minutes: number;
+  }> = [
+    {
+      provider: "MINTSOFT",
+      type: "STOCK_SYNC",
+      minutes: Number(process.env.STOCK_SYNC_INTERVAL_MINUTES || 15),
+    },
+    {
+      provider: "MINTSOFT",
+      type: "SHIPMENT_PULL",
+      minutes: Number(process.env.SHIPMENT_SYNC_INTERVAL_MINUTES || 5),
+    },
+    {
+      provider: "SAGE_50",
+      type: "INVOICE_PULL",
+      minutes: Number(process.env.INVOICE_SYNC_INTERVAL_MINUTES || 60),
+    },
+  ];
+  const now = Date.now();
+  for (const schedule of schedules) {
+    const interval = Math.max(1, schedule.minutes) * 60_000;
+    const bucket = Math.floor(now / interval);
+    const idempotencyKey = `scheduled:${schedule.provider}:${schedule.type}:${bucket}`;
+    const connectionRow = await prisma.integrationConnection.upsert({
+      where: { provider: schedule.provider },
+      update: {},
+      create: { provider: schedule.provider, status: IntegrationStatus.DEGRADED },
+    });
+    await prisma.integrationJob.upsert({
+      where: { idempotencyKey },
+      update: {},
+      create: {
+        connectionId: connectionRow.id,
+        type: schedule.type,
+        status: JobStatus.PENDING,
+        correlationId: idempotencyKey,
+        idempotencyKey,
+        payload: { scheduledAt: new Date().toISOString() },
+      },
+    });
+  }
+}
+
 function logRelayError(error: unknown) {
   console.error(
     JSON.stringify({
@@ -441,6 +587,10 @@ const relayTimer = setInterval(
 const pendingTimer = setInterval(
   () => void enqueuePending().catch(logRelayError),
   5000,
+);
+const scheduleTimer = setInterval(
+  () => void scheduleRecurringJobs().catch(logRelayError),
+  60_000,
 );
 worker.on("completed", (job) =>
   console.info(
@@ -465,10 +615,12 @@ worker.on("failed", (job, error) =>
 );
 void relayOutbox().catch(logRelayError);
 void enqueuePending().catch(logRelayError);
+void scheduleRecurringJobs().catch(logRelayError);
 
 async function shutdown() {
   clearInterval(relayTimer);
   clearInterval(pendingTimer);
+  clearInterval(scheduleTimer);
   await worker.close();
   await queue.close();
   await connection.quit();

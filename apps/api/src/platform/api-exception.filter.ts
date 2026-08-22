@@ -27,6 +27,22 @@ export class ApiExceptionFilter implements ExceptionFilter {
         : typeof body === "object" && body && "message" in body
           ? (body as any).message
           : "An unexpected error occurred";
+    const messages = Array.isArray(message) ? message : [message];
+    const validation =
+      status === HttpStatus.BAD_REQUEST &&
+      typeof body === "object" &&
+      body &&
+      "error" in body &&
+      (body as { error?: string }).error === "Bad Request" &&
+      Array.isArray(message);
+    const fieldErrors = validation
+      ? messages.reduce<Record<string, string[]>>((result, entry) => {
+          const safe = String(entry);
+          const field = safe.split(" ", 1)[0] || "request";
+          (result[field] ??= []).push(safe);
+          return result;
+        }, {})
+      : undefined;
     if (status >= 500)
       console.error(
         JSON.stringify({
@@ -41,8 +57,14 @@ export class ApiExceptionFilter implements ExceptionFilter {
     response
       .status(status)
       .json({
-        code: status === 500 ? "INTERNAL_ERROR" : `HTTP_${status}`,
-        message,
+        code:
+          status === 500
+            ? "INTERNAL_ERROR"
+            : validation
+              ? "VALIDATION_ERROR"
+              : `HTTP_${status}`,
+        message: messages[0],
+        ...(fieldErrors ? { fieldErrors } : {}),
         correlationId: request.correlationId || "unknown",
         path: request.url,
       });

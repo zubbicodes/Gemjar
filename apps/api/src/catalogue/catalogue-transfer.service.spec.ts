@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import ExcelJS from "exceljs";
 import { CatalogueTransferService } from "./catalogue-transfer.service";
 
 function service(existing: unknown = null) {
@@ -46,5 +47,50 @@ describe("catalogue CSV staging", () => {
       transfers.stage("ignored", "same-key", "admin-1"),
     ).resolves.toBe(existing);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it("stages an XLSX worksheet through the same validation pipeline", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Catalogue");
+    sheet.addRow([
+      "name",
+      "slug",
+      "sku",
+      "description",
+      "retailPrice",
+      "b2bPrice",
+      "moq",
+      "packMultiple",
+      "category",
+      "imageUrl",
+    ]);
+    sheet.addRow([
+      "Verdant Ring",
+      "verdant-ring",
+      "GJ-101",
+      "A considered verdant ring",
+      120,
+      90,
+      1,
+      1,
+      "Rings",
+      "https://example.test/ring.jpg",
+    ]);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const { transfers, create } = service();
+    await transfers.stageWorkbook(
+      Buffer.from(buffer as never).toString("base64"),
+      "import-key-xlsx",
+      "admin-1",
+    );
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "CATALOGUE_XLSX",
+          validRows: 1,
+          invalidRows: 0,
+        }),
+      }),
+    );
   });
 });

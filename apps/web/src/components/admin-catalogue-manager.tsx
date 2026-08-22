@@ -385,6 +385,44 @@ export function AdminCatalogueManager() {
     }
   }
 
+  async function stageWorkbook(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const file = new FormData(event.currentTarget).get("workbook");
+    if (!(file instanceof File) || !file.size) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      for (let index = 0; index < bytes.length; index += 0x8000)
+        binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+      const response = await fetch(
+        `${API_URL}/admin/catalogue-transfers/imports/xlsx`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...csrfHeaders() },
+          body: JSON.stringify({
+            base64: btoa(binary),
+            idempotencyKey: crypto.randomUUID(),
+          }),
+        },
+      );
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || "Unable to stage workbook");
+      setMessage(
+        body.invalidRows
+          ? `Workbook checked: ${body.invalidRows} invalid row(s).`
+          : `Workbook ready: ${body.validRows} valid row(s).`,
+      );
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to stage workbook");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function commitImport(id: string) {
     setSubmitting(true);
     setError("");
@@ -961,7 +999,7 @@ export function AdminCatalogueManager() {
       </div>
       <div className="grid gap-6 border-t border-ink/10 p-6 lg:grid-cols-2">
         <div>
-          <h3 className="font-display text-2xl font-semibold">CSV import</h3>
+          <h3 className="font-display text-2xl font-semibold">CSV/XLSX import</h3>
           <p className="mt-1 text-xs text-ink/45">
             Stage and validate first. Commit only clean files; retries are
             idempotent.
@@ -978,6 +1016,13 @@ export function AdminCatalogueManager() {
             <Button className="mt-3" type="submit" disabled={submitting}>
               Validate CSV
             </Button>
+          </form>
+          <form onSubmit={stageWorkbook} className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-ink/10 p-3">
+            <label className="min-w-0 flex-1 text-xs font-bold">
+              Excel workbook
+              <input name="workbook" className="field mt-2 py-2" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
+            </label>
+            <Button type="submit" disabled={submitting}>Validate XLSX</Button>
           </form>
           <div className="mt-4 space-y-2">
             {imports.map((job) => (

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { JobStatus, Prisma, ProductStatus } from "@prisma/client";
+import ExcelJS from "exceljs";
 import { PrismaService } from "../database/prisma.service";
 
 const fields = [
@@ -26,7 +27,12 @@ type RowError = { row: number; errors: string[] };
 export class CatalogueTransferService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async stage(csv: string, idempotencyKey: string, actorId: string) {
+  async stage(
+    csv: string,
+    idempotencyKey: string,
+    actorId: string,
+    type = "CATALOGUE_CSV",
+  ) {
     const existing = await this.prisma.importJob.findUnique({
       where: { idempotencyKey },
     });
@@ -68,7 +74,7 @@ export class CatalogueTransferService {
     return this.prisma.$transaction(async (tx) => {
       const job = await tx.importJob.create({
         data: {
-          type: "CATALOGUE_CSV",
+          type,
           status: errors.length ? JobStatus.FAILED : JobStatus.PENDING,
           objectKey: `inline://${idempotencyKey}`,
           idempotencyKey,
@@ -94,6 +100,34 @@ export class CatalogueTransferService {
       });
       return job;
     });
+  }
+
+  async stageWorkbook(base64: string, idempotencyKey: string, actorId: string) {
+    let workbook: ExcelJS.Workbook;
+    try {
+      workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(Buffer.from(base64, "base64") as never);
+    } catch {
+      throw new ConflictException("XLSX workbook could not be read");
+    }
+    const sheet = workbook.worksheets[0];
+    if (!sheet) throw new ConflictException("XLSX workbook has no worksheet");
+    const rows: string[] = [];
+    sheet.eachRow({ includeEmpty: true }, (row) => {
+      const values = row.values as ExcelJS.CellValue[];
+      rows.push(
+        values
+          .slice(1)
+          .map((value) => this.escape(this.cellText(value)))
+          .join(","),
+      );
+    });
+    return this.stage(
+      `${rows.join("\r\n")}\r\n`,
+      idempotencyKey,
+      actorId,
+      "CATALOGUE_XLSX",
+    );
   }
 
   async listImports() {
@@ -383,5 +417,16 @@ export class CatalogueTransferService {
   }
   private escape(value: string) {
     return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  }
+  private cellText(value: ExcelJS.CellValue | undefined) {
+    if (value == null) return "";
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === "object") {
+      if ("text" in value) return String(value.text);
+      if ("result" in value) return String(value.result ?? "");
+      if ("richText" in value)
+        return value.richText.map((part) => part.text).join("");
+    }
+    return String(value);
   }
 }

@@ -16,3 +16,23 @@ export interface InvoiceProvider {
     Array<{ id: string; number: string; totalMinor: number; issuedAt: string }>
   >;
 }
+export interface ShipmentUpdate {
+  externalOrderId: string;
+  status: "PENDING" | "DISPATCHED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+  carrier?: string;
+  trackingNumber?: string;
+  occurredAt: string;
+}
+export interface ShipmentProvider {
+  pullUpdates(cursor?: string): Promise<{
+    updates: ShipmentUpdate[];
+    cursor?: string;
+  }>;
+  handleWebhook(payload: unknown): Promise<ShipmentUpdate[]>;
+}
+export interface CustomerSyncProvider {
+  pullCustomers(cursor?: string): Promise<{ customers: unknown[]; cursor?: string }>;
+}
+export interface PricingSyncProvider {
+  pullPrices(cursor?: string): Promise<{ prices: unknown[]; cursor?: string }>;
+}
