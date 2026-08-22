@@ -70,6 +70,13 @@ const menus: Record<
   ],
 };
 
+const portalRoots: Record<PortalKind, string> = {
+  account: "/account",
+  trade: "/trade",
+  agent: "/agent",
+  admin: "/admin",
+};
+
 export function PortalNav({
   kind,
   compact = false,
@@ -88,7 +95,9 @@ export function PortalNav({
       }
     >
       {menus[kind].map(([label, href, Icon]) => {
-        const active = href === pathname || pathname.startsWith(`${href}/`);
+        const active =
+          href === pathname ||
+          (href !== portalRoots[kind] && pathname.startsWith(`${href}/`));
         return (
           <Link
             key={label}

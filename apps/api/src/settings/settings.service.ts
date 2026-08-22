@@ -14,6 +14,7 @@ export type StorefrontContent = {
   emphasis: string;
   introduction: string;
   heroImageUrl: string;
+  heroImages: string[];
   tradeHeadline: string;
   tradeIntroduction: string;
   deliveryPolicy: string;
@@ -28,6 +29,14 @@ export const DEFAULT_STOREFRONT_CONTENT: StorefrontContent = {
     "Soft bamboo socks, warm wool blends and cosy apparel in original, colourful Gemjar designs.",
   heroImageUrl:
     "https://gemjarsocks.com/cdn/shop/files/GEMJAR_BOXES-3_copy_14225217-3744-4b06-adf3-0696b6e94cbb.jpg",
+  heroImages: [
+    "https://gemjarsocks.com/cdn/shop/files/GEMJAR_BOXES-3_copy_14225217-3744-4b06-adf3-0696b6e94cbb.jpg",
+    "https://gemjarsocks.com/cdn/shop/files/ladies_1_resized_e623a25e-6332-4eb5-be21-40fa87330c2b.jpg",
+    "https://gemjarsocks.com/cdn/shop/files/FAIRISLE_BUNDLE.jpg",
+    "https://gemjarsocks.com/cdn/shop/files/web-verion-1.jpg",
+    "https://gemjarsocks.com/cdn/shop/files/over_the_knee_socks.jpg",
+    "https://gemjarsocks.com/cdn/shop/files/JOYA_SEPT_20204-22.jpg",
+  ],
   tradeHeadline: "Colourful collections for independent shops.",
   tradeIntroduction:
     "Browse socks, hats, gloves and cosy apparel with trade pricing, quick reordering and account tools in one place.",

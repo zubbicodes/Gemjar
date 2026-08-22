@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
+import { HeroGallery } from "@/components/hero-gallery";
 import { ProductCard } from "@/components/product-card";
 import { buttonVariants } from "@/components/ui/button";
 import { getProducts, getStorefrontContent } from "@/lib/api";
@@ -40,10 +41,12 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-        <div className="relative min-h-[420px] min-w-0 overflow-hidden lg:min-h-full">
-          <Image src={content.heroImageUrl} alt="Colourful Gemjar socks arranged for the collection" fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 55vw" unoptimized={content.heroImageUrl.startsWith("http")} />
-          <p className="absolute bottom-5 left-5 bg-paper px-4 py-2 text-xs font-bold text-ink shadow-soft">Soft on feet. Big on colour.</p>
-        </div>
+        <HeroGallery
+          images={
+            content.heroImages?.length ? content.heroImages : [content.heroImageUrl]
+          }
+          alt="Colourful Gemjar socks arranged for the collection"
+        />
       </section>
 
       <section className="border-y border-ink/10 bg-mist/55">

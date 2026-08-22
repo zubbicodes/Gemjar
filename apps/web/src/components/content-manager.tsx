@@ -11,11 +11,14 @@ export function ContentManager() {
   const view = useApi<StorefrontContent>("/content/storefront");
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await apiSend(
-      "/content/storefront",
-      "PATCH",
-      Object.fromEntries(new FormData(event.currentTarget)),
-    );
+    const entries = Object.fromEntries(new FormData(event.currentTarget));
+    await apiSend("/content/storefront", "PATCH", {
+      ...entries,
+      heroImages: String(entries.heroImages ?? "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    });
     await view.reload();
   }
   if (view.loading)
@@ -56,6 +59,15 @@ export function ContentManager() {
             />
           </label>
         ))}
+        <label className="col-span-full text-xs font-bold">
+          Hero images (one URL per line, shown as a rotating gallery)
+          <textarea
+            className="field mt-2 min-h-24 py-3"
+            name="heroImages"
+            defaultValue={view.data.heroImages.join("\n")}
+            required
+          />
+        </label>
         <label className="col-span-full text-xs font-bold">
           Introduction
           <textarea

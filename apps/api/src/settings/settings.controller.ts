@@ -1,6 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsEmail,
   IsBoolean,
   IsInt,
@@ -49,6 +52,7 @@ class StorefrontContentDto {
   @IsString() @MinLength(2) @MaxLength(80) emphasis: string;
   @IsString() @MinLength(10) @MaxLength(400) introduction: string;
   @IsString() @MinLength(1) @MaxLength(500) heroImageUrl: string;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(8) @IsString({ each: true }) heroImages: string[];
   @IsString() @MinLength(10) @MaxLength(160) tradeHeadline: string;
   @IsString() @MinLength(10) @MaxLength(400) tradeIntroduction: string;
   @IsString() @MinLength(20) @MaxLength(2000) deliveryPolicy: string;
