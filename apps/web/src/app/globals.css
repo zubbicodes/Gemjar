@@ -61,6 +61,14 @@ textarea {
 @keyframes marquee {
   to { transform: translateX(-50%); }
 }
+.hero-dot-progress {
+  animation: hero-dot-progress linear forwards;
+  animation-duration: var(--hero-dot-duration, 4500ms);
+}
+@keyframes hero-dot-progress {
+  from { stroke-dashoffset: 50.265; }
+  to { stroke-dashoffset: 0; }
+}
 
 @layer components {
   .eyebrow {
