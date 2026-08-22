@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Pencil, Plus, X } from "lucide-react";
+import { Check, MapPin, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import {
   EmptyRow,
@@ -29,6 +29,16 @@ type Organization = {
     role: string;
     user: { id: string; email: string; firstName: string; lastName: string };
   }>;
+  addresses: Array<{
+    id: string;
+    label: string;
+    recipient: string;
+    line1: string;
+    line2: string | null;
+    city: string;
+    county: string | null;
+    postcode: string;
+  }>;
 };
 
 export function AdminCustomers() {
@@ -38,6 +48,7 @@ export function AdminCustomers() {
   const [message, setMessage] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Organization | null>(null);
+  const [managingAddresses, setManagingAddresses] = useState("");
 
   async function createCustomer(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -113,6 +124,58 @@ export function AdminCustomers() {
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Unable to update terms",
+      );
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function addAddress(
+    event: React.FormEvent<HTMLFormElement>,
+    organizationId: string,
+  ) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    setBusy(`address:${organizationId}`);
+    setError("");
+    try {
+      await apiSend(`/organizations/${organizationId}/addresses`, "POST", {
+        label: form.get("label"),
+        recipient: form.get("recipient"),
+        line1: form.get("line1"),
+        line2: form.get("line2") || undefined,
+        city: form.get("city"),
+        county: form.get("county") || undefined,
+        postcode: form.get("postcode"),
+      });
+      formElement.reset();
+      await organizations.reload();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to add this delivery location",
+      );
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function removeAddress(organizationId: string, addressId: string) {
+    setBusy(`address:${organizationId}`);
+    setError("");
+    try {
+      await apiSend(
+        `/organizations/${organizationId}/addresses/${addressId}`,
+        "DELETE",
+      );
+      await organizations.reload();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to remove this delivery location",
       );
     } finally {
       setBusy("");
@@ -308,6 +371,20 @@ export function AdminCustomers() {
                   >
                     <Pencil className="size-3.5" /> Edit terms
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setManagingAddresses(
+                        managingAddresses === organization.id
+                          ? ""
+                          : organization.id,
+                      )
+                    }
+                  >
+                    <MapPin className="size-3.5" /> Delivery locations (
+                    {organization.addresses.length})
+                  </Button>
                   {organization.status === "PENDING" && (
                     <>
                       <Button
@@ -438,6 +515,100 @@ export function AdminCustomers() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {managingAddresses === organization.id && (
+                <div className="mt-5 rounded-2xl border border-ink/10 bg-white/45 p-4">
+                  <p className="text-xs font-bold">Delivery locations</p>
+                  <p className="mt-1 text-[11px] text-ink/45">
+                    Warehouses, stores and branches this account can choose as
+                    a delivery destination when ordering.
+                  </p>
+                  {organization.addresses.length > 0 && (
+                    <ul className="mt-3 space-y-2">
+                      {organization.addresses.map((address) => (
+                        <li
+                          key={address.id}
+                          className="flex items-start justify-between gap-3 rounded-xl border border-ink/[.08] bg-white/60 p-3"
+                        >
+                          <div className="flex items-start gap-2 text-[11px]">
+                            <MapPin className="mt-0.5 size-3.5 shrink-0 text-forest" />
+                            <div>
+                              <p className="font-bold">{address.label}</p>
+                              <p className="text-ink/55">
+                                {address.recipient} · {address.line1}
+                                {address.line2 ? `, ${address.line2}` : ""},{" "}
+                                {address.city}
+                                {address.county ? `, ${address.county}` : ""}{" "}
+                                {address.postcode}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${address.label}`}
+                            disabled={busy === `address:${organization.id}`}
+                            onClick={() =>
+                              void removeAddress(organization.id, address.id)
+                            }
+                            className="shrink-0 text-ink/35 hover:text-red-600"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <form
+                    onSubmit={(event) => void addAddress(event, organization.id)}
+                    className="mt-4 grid gap-2 sm:grid-cols-2"
+                  >
+                    <input
+                      name="label"
+                      className="field"
+                      placeholder="Location name (e.g. London Warehouse)"
+                      minLength={1}
+                      required
+                    />
+                    <input
+                      name="recipient"
+                      className="field"
+                      placeholder="Recipient"
+                      required
+                    />
+                    <input
+                      name="line1"
+                      className="field sm:col-span-2"
+                      placeholder="Address line 1"
+                      required
+                    />
+                    <input
+                      name="line2"
+                      className="field sm:col-span-2"
+                      placeholder="Address line 2 (optional)"
+                    />
+                    <input name="city" className="field" placeholder="Town or city" required />
+                    <input
+                      name="postcode"
+                      className="field uppercase"
+                      placeholder="Postcode"
+                      required
+                    />
+                    <input
+                      name="county"
+                      className="field sm:col-span-2"
+                      placeholder="County (optional)"
+                    />
+                    <div className="sm:col-span-2 flex justify-end">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={busy === `address:${organization.id}`}
+                      >
+                        <Plus className="size-3.5" /> Add location
+                      </Button>
+                    </div>
+                  </form>
+                </div>
               )}
             </li>
           ))}

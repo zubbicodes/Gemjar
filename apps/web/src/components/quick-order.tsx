@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   FileText,
   LoaderCircle,
+  MapPin,
   Minus,
   Plus,
   Save,
@@ -42,7 +43,10 @@ type Organization = {
   poRequired: boolean;
   paymentTermsDays: number;
   vatDisplay: "EXCLUSIVE" | "INCLUSIVE";
+  membershipRole?: "OWNER" | "BUYER" | "VIEWER";
   addresses?: Array<{
+    id: string;
+    label: string;
     recipient: string;
     line1: string;
     line2?: string | null;
@@ -145,11 +149,20 @@ export function QuickOrder({ kind = "trade" }: { kind?: "trade" | "agent" }) {
     "ON_ACCOUNT",
   );
   const [cardSession, setCardSession] = useState<CheckoutSession | null>(null);
+  const [addressId, setAddressId] = useState("");
+  const [showAddLocation, setShowAddLocation] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
   const orderKey = useRef<string | null>(null);
 
   const selectedOrganization = organizations.find(
     (organization) => organization.id === organizationId,
   );
+  const addresses = selectedOrganization?.addresses ?? [];
+  const selectedAddress = addresses.find(
+    (address) => address.id === addressId,
+  );
+  const canManageLocations =
+    kind === "trade" && selectedOrganization?.membershipRole === "OWNER";
   const productByVariant = useMemo(
     () =>
       new Map(
@@ -183,38 +196,112 @@ export function QuickOrder({ kind = "trade" }: { kind?: "trade" | "agent" }) {
     setDrafts(body.data);
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    const path =
-      kind === "agent" ? "/agents/me/customers" : "/organizations/current";
-    void fetch(`${API_URL}${path}`, {
-      credentials: "include",
-      cache: "no-store",
-    })
-      .then(readJson)
-      .then((body) => {
-        if (!active) return;
+  const loadOrganizations = useCallback(
+    async (keepSelection = false) => {
+      const path =
+        kind === "agent" ? "/agents/me/customers" : "/organizations/current";
+      try {
+        const body = await readJson(
+          await fetch(`${API_URL}${path}`, {
+            credentials: "include",
+            cache: "no-store",
+          }),
+        );
         const approved = (body.data as Organization[]).filter(
           (organization) => organization.status === "APPROVED",
         );
         setOrganizations(approved);
-        setOrganizationId(approved[0]?.id ?? "");
+        setOrganizationId((current) =>
+          keepSelection && approved.some((organization) => organization.id === current)
+            ? current
+            : (approved[0]?.id ?? ""),
+        );
         if (!approved.length) setLoading(false);
-      })
-      .catch((cause) => {
-        if (active) {
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : "Unable to load account context",
-          );
-          setLoading(false);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [kind]);
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Unable to load account context",
+        );
+        setLoading(false);
+      }
+    },
+    [kind],
+  );
+
+  useEffect(() => {
+    void loadOrganizations();
+  }, [loadOrganizations]);
+
+  useEffect(() => {
+    if (!addresses.some((address) => address.id === addressId))
+      setAddressId(addresses[0]?.id ?? "");
+  }, [organizationId, addresses, addressId]);
+
+  async function addLocation(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!organizationId) return;
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    setSavingLocation(true);
+    setError("");
+    try {
+      await readJson(
+        await fetch(`${API_URL}/organizations/${organizationId}/addresses`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...csrfHeaders() },
+          body: JSON.stringify({
+            label: form.get("label"),
+            recipient: form.get("recipient"),
+            line1: form.get("line1"),
+            line2: form.get("line2") || undefined,
+            city: form.get("city"),
+            county: form.get("county") || undefined,
+            postcode: form.get("postcode"),
+          }),
+        }),
+      );
+      formElement.reset();
+      setShowAddLocation(false);
+      await loadOrganizations(true);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to add this delivery location",
+      );
+    } finally {
+      setSavingLocation(false);
+    }
+  }
+
+  async function removeLocation(id: string) {
+    if (!organizationId) return;
+    setSavingLocation(true);
+    setError("");
+    try {
+      await readJson(
+        await fetch(
+          `${API_URL}/organizations/${organizationId}/addresses/${id}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+            headers: { ...csrfHeaders() },
+          },
+        ),
+      );
+      await loadOrganizations(true);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to remove this delivery location",
+      );
+    } finally {
+      setSavingLocation(false);
+    }
+  }
 
   useEffect(() => {
     if (!organizationId) return;
@@ -395,7 +482,14 @@ export function QuickOrder({ kind = "trade" }: { kind?: "trade" | "agent" }) {
 
   async function submitOrder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!organizationId || !quote || invalid || !rows.length) return;
+    if (
+      !organizationId ||
+      !quote ||
+      invalid ||
+      !rows.length ||
+      !selectedAddress
+    )
+      return;
     const form = new FormData(event.currentTarget);
     setSubmitting(true);
     setError("");
@@ -410,12 +504,12 @@ export function QuickOrder({ kind = "trade" }: { kind?: "trade" | "agent" }) {
         purchaseOrder: form.get("purchaseOrder") || undefined,
         notes: form.get("notes") || undefined,
         deliveryAddress: {
-          recipient: form.get("recipient"),
-          line1: form.get("line1"),
-          line2: form.get("line2") || undefined,
-          city: form.get("city"),
-          county: form.get("county") || undefined,
-          postcode: form.get("postcode"),
+          recipient: selectedAddress.recipient,
+          line1: selectedAddress.line1,
+          line2: selectedAddress.line2 || undefined,
+          city: selectedAddress.city,
+          county: selectedAddress.county || undefined,
+          postcode: selectedAddress.postcode,
           countryCode: "GB",
         },
       };
@@ -786,6 +880,144 @@ export function QuickOrder({ kind = "trade" }: { kind?: "trade" | "agent" }) {
                 verified by the API.
               </p>
             </section>
+            <section className="surface p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="eyebrow">Delivery</p>
+                  <p className="mt-2 text-xs text-ink/45">
+                    Choose the account and location this order ships to
+                  </p>
+                </div>
+                <MapPin className="size-5 text-ink/25" />
+              </div>
+              <div className="mt-5">
+                <p className="portal-label">Billing account</p>
+                <div className="mt-2 flex items-center gap-2 text-sm font-bold">
+                  <Building2 className="size-4 shrink-0 text-forest" />
+                  {selectedOrganization?.name}
+                </div>
+                <p className="portal-label mt-4">Deliver to</p>
+                {!addresses.length ? (
+                  <p className="mt-2 text-xs text-ink/45">
+                    No delivery locations yet.{" "}
+                    {canManageLocations
+                      ? "Add one below."
+                      : "Ask your account admin to add one."}
+                  </p>
+                ) : (
+                  <ul className="mt-2 space-y-1">
+                    {addresses.map((address) => (
+                      <li key={address.id}>
+                        <button
+                          type="button"
+                          onClick={() => setAddressId(address.id)}
+                          aria-current={address.id === addressId}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold transition-colors ${
+                            address.id === addressId
+                              ? "bg-forest/10 text-forest"
+                              : "text-ink/70 hover:bg-mist/60"
+                          }`}
+                        >
+                          <MapPin className="size-3.5 shrink-0" />
+                          <span className="flex-1">{address.label}</span>
+                          {address.id === addressId && (
+                            <span className="text-[10px] font-bold text-forest">
+                              Selected
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {canManageLocations && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddLocation((value) => !value)}
+                      className="mt-3 text-[11px] font-bold text-forest"
+                    >
+                      {showAddLocation ? "Close" : "Manage delivery locations"}
+                    </button>
+                    {showAddLocation && (
+                      <div className="mt-3 space-y-3 rounded-lg border border-ink/10 bg-mist/40 p-3">
+                        {addresses.map((address) => (
+                          <div
+                            key={address.id}
+                            className="flex items-center justify-between text-[11px]"
+                          >
+                            <span>{address.label}</span>
+                            <button
+                              type="button"
+                              aria-label={`Remove ${address.label}`}
+                              disabled={savingLocation}
+                              onClick={() => void removeLocation(address.id)}
+                            >
+                              <Trash2 className="size-3.5 text-ink/35 hover:text-red-600" />
+                            </button>
+                          </div>
+                        ))}
+                        <form
+                          onSubmit={addLocation}
+                          className="grid gap-2 sm:grid-cols-2"
+                        >
+                          <input
+                            name="label"
+                            className="field text-xs sm:col-span-2"
+                            placeholder="Location name (e.g. Leeds Branch)"
+                            minLength={1}
+                            required
+                          />
+                          <input
+                            name="recipient"
+                            className="field text-xs sm:col-span-2"
+                            placeholder="Recipient"
+                            required
+                          />
+                          <input
+                            name="line1"
+                            className="field text-xs sm:col-span-2"
+                            placeholder="Address line 1"
+                            required
+                          />
+                          <input
+                            name="line2"
+                            className="field text-xs sm:col-span-2"
+                            placeholder="Address line 2 (optional)"
+                          />
+                          <input
+                            name="city"
+                            className="field text-xs"
+                            placeholder="Town or city"
+                            required
+                          />
+                          <input
+                            name="postcode"
+                            className="field text-xs uppercase"
+                            placeholder="Postcode"
+                            required
+                          />
+                          <input
+                            name="county"
+                            className="field text-xs sm:col-span-2"
+                            placeholder="County (optional)"
+                          />
+                          <div className="flex justify-end sm:col-span-2">
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={savingLocation}
+                            >
+                              <Plus className="size-3.5" /> Add location
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </section>
             <form className="surface p-6" onSubmit={submitOrder}>
               <div className="flex items-center justify-between">
                 <div>
@@ -803,54 +1035,6 @@ export function QuickOrder({ kind = "trade" }: { kind?: "trade" | "agent" }) {
                   type="email"
                   placeholder="Confirmation email"
                   required
-                />
-                <input
-                  name="recipient"
-                  className="field"
-                  placeholder="Recipient"
-                  defaultValue={selectedOrganization?.addresses?.[0]?.recipient}
-                  required
-                />
-                <input
-                  name="line1"
-                  className="field"
-                  placeholder="Address line 1"
-                  defaultValue={selectedOrganization?.addresses?.[0]?.line1}
-                  required
-                />
-                <input
-                  name="line2"
-                  className="field"
-                  placeholder="Address line 2 (optional)"
-                  defaultValue={
-                    selectedOrganization?.addresses?.[0]?.line2 ?? ""
-                  }
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    name="city"
-                    className="field"
-                    placeholder="Town or city"
-                    defaultValue={selectedOrganization?.addresses?.[0]?.city}
-                    required
-                  />
-                  <input
-                    name="postcode"
-                    className="field uppercase"
-                    placeholder="Postcode"
-                    defaultValue={
-                      selectedOrganization?.addresses?.[0]?.postcode
-                    }
-                    required
-                  />
-                </div>
-                <input
-                  name="county"
-                  className="field"
-                  placeholder="County (optional)"
-                  defaultValue={
-                    selectedOrganization?.addresses?.[0]?.county ?? ""
-                  }
                 />
                 {selectedOrganization?.poRequired && (
                   <input
@@ -895,6 +1079,7 @@ export function QuickOrder({ kind = "trade" }: { kind?: "trade" | "agent" }) {
                   invalid ||
                   quoting ||
                   submitting ||
+                  !selectedAddress ||
                   Boolean(cardSession)
                 }
               >
